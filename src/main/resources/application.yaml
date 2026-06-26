@@ -21,3 +21,5 @@ spring:
 logging:
   level:
     com.jycz.qingyun: debug   # 打印你项目包下的debug日志
+server:
+  port: 8080
