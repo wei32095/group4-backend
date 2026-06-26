@@ -1,0 +1,23 @@
+spring:
+  # 1. 应用名称（你已配置）
+  application:
+    name: qingyun
+
+  # 2. 数据源配置（连接你的MySQL数据库，核心！）
+  datasource:
+    url: jdbc:mysql://localhost:3306/qingyun?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: root      # ⚠️ 必改：替换成你的MySQL用户名
+    password: 1    # ⚠️ 必改：替换成你的MySQL密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # 3. JPA配置（让Spring自动帮你管理数据库表）
+  jpa:
+    hibernate:
+      ddl-auto: update   # 自动更新表结构，开发神器
+    show-sql: true       # 控制台打印SQL，方便调试
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+# 4. 日志配置（方便查看你写的代码运行情况）
+logging:
+  level:
+    com.jycz.qingyun: debug   # 打印你项目包下的debug日志
