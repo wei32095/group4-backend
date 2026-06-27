@@ -1,0 +1,35 @@
+package com.jycz.qingyun.controller;
+
+import com.jycz.qingyun.model.dto.ApiResult;
+import com.jycz.qingyun.model.dto.InfoUpdateRequest;
+import com.jycz.qingyun.model.vo.StudentInfoVO;
+import com.jycz.qingyun.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/qingyun")
+public class InfoController {
+
+    @Autowired
+    private UserService userService;
+
+    @GetMapping("/info")
+    public ApiResult<StudentInfoVO> info(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return userService.getUserInfo(userId);
+    }
+
+    @PutMapping("/info")
+    public ApiResult<Boolean> updateInfo(HttpServletRequest request,
+                                          @Valid @RequestBody InfoUpdateRequest body) {
+        Long userId = (Long) request.getAttribute("userId");
+        return userService.updateUserInfo(userId, body);
+    }
+}

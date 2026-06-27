@@ -22,7 +22,7 @@ public class User {
 
     private Integer role;   // 1-学员 2-讲师 3-管理员
 
-    private Integer status; // 1-正常 0-禁用
+    private Integer status; // 1-正常 2-禁用
 
     // 积分在单独表中，但 User 实体里暂时不加 points，后面根据业务需要再建积分实体
 }
