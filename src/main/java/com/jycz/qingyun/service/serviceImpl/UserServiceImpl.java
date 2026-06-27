@@ -6,8 +6,9 @@ import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.utils.JwtUtil;
 import com.jycz.qingyun.model.dto.LoginRequest;
 import com.jycz.qingyun.model.entity.User;
+import com.jycz.qingyun.model.vo.StudentInfoVO;
 import com.jycz.qingyun.service.UserService;
-import com.jycz.qingyun.model.vo.Login;
+import com.jycz.qingyun.model.vo.LoginVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,7 @@ public class UserServiceImpl implements UserService {
     private JwtUtil jwtUtil;
 
     @Override
-    public ApiResult<Login> login(LoginRequest request) {
+    public ApiResult<LoginVO> login(LoginRequest request) {
         // 1. 根据手机号查询用户
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getPhone, request.getPhone());
@@ -49,7 +50,7 @@ public class UserServiceImpl implements UserService {
         String token = jwtUtil.generateToken(user.getId(), user.getRole());
 
         // 6. 构建 LoginVO
-        Login login = new Login();
+        LoginVO login = new LoginVO();
         login.setToken(token);
         login.setTokenType("Bearer");
 
@@ -81,5 +82,28 @@ public class UserServiceImpl implements UserService {
         login.setUserInfo(userInfo);
 
         return ApiResult.success(login);
+    }
+
+    @Override
+    public ApiResult<StudentInfoVO> getUserInfo(Long userId) {
+        User user = userMapper.selectById(userId);
+
+        if (user == null) {
+            return ApiResult.error(401, "用户不存在");
+        }
+
+        if (user.getStatus() == 2) {
+            return ApiResult.error(403, "账号已被禁用");
+        }
+
+        StudentInfoVO vo = new StudentInfoVO();
+        vo.setId(user.getId());
+        vo.setName(user.getName());
+        vo.setPhone(user.getPhone());
+        vo.setAvatar(user.getAvatar());
+        vo.setRole(user.getRole());
+        vo.setStatus(user.getStatus());
+
+        return ApiResult.success(vo);
     }
 }
