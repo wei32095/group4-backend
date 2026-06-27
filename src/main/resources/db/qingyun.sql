@@ -296,9 +296,9 @@ CREATE TABLE `student_analysis` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学情分析表';
 
 
--- =============================================
+-- ============================================
 -- 19. 课程-学生关联表（course_student）
--- =============================================
+-- ============================================
 CREATE TABLE `course_student` (
                                   `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '关联ID',
                                   `course_id` BIGINT NOT NULL COMMENT '课程ID',
