@@ -3,6 +3,7 @@ package com.jycz.qingyun.service.serviceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.model.dto.ApiResult;
+import com.jycz.qingyun.model.dto.InfoUpdateRequest;
 import com.jycz.qingyun.utils.JwtUtil;
 import com.jycz.qingyun.model.dto.LoginRequest;
 import com.jycz.qingyun.model.entity.User;
@@ -105,5 +106,29 @@ public class UserServiceImpl implements UserService {
         vo.setStatus(user.getStatus());
 
         return ApiResult.success(vo);
+    }
+
+    @Override
+    public ApiResult<Boolean> updateUserInfo(Long userId, InfoUpdateRequest request) {
+        User user = userMapper.selectById(userId);
+
+        if (user == null) {
+            return ApiResult.error(401, "用户不存在");
+        }
+
+        if (user.getStatus() == 2) {
+            return ApiResult.error(403, "账号已被禁用");
+        }
+
+        user.setName(request.getName());
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+        }
+
+        int rows = userMapper.updateById(user);
+        return ApiResult.success(rows > 0);
     }
 }
