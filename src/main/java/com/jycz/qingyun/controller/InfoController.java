@@ -1,7 +1,9 @@
 package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
+import com.jycz.qingyun.model.dto.BindPhoneRequest;
 import com.jycz.qingyun.model.dto.InfoUpdateRequest;
+import com.jycz.qingyun.model.dto.PasswordUpdateRequest;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
 import com.jycz.qingyun.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,5 +29,19 @@ public class InfoController {
                                           @Valid @RequestBody InfoUpdateRequest body) {
         Long userId = (Long) request.getAttribute("userId");
         return userService.updateUserInfo(userId, body);
+    }
+
+    @PostMapping("/bind-phone")
+    public ApiResult<Boolean> bindPhone(HttpServletRequest request,
+                                         @Valid @RequestBody BindPhoneRequest body) {
+        Long userId = (Long) request.getAttribute("userId");
+        return userService.bindPhone(userId, body);
+    }
+
+    @PutMapping("/password")
+    public ApiResult<Boolean> updatePassword(HttpServletRequest request,
+                                              @Valid @RequestBody PasswordUpdateRequest body) {
+        Long userId = (Long) request.getAttribute("userId");
+        return userService.updatePassword(userId, body);
     }
 }

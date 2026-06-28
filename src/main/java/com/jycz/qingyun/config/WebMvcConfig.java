@@ -18,6 +18,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/qingyun/login",          // Web 端登录
+                        "/qingyun/login/mp",       // 小程序端登录
+                        "/qingyun/register",       // 注册
                         "/hello"                   // 健康检查
                 );
     }
