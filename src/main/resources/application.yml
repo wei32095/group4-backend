@@ -22,6 +22,11 @@ jwt:
   secret: qingyun_platform_2026_secret_key_123456
   expire: 86400000
 
+wx:
+  app-id: wx_mock_app_id_placeholder
+  app-secret: wx_mock_app_secret_placeholder
+  mock: true
+
 logging:
   level:
     com.jycz.qingyun: debug
