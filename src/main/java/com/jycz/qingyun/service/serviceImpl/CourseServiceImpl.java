@@ -1,4 +1,4 @@
-package com.jycz.qingyun.service.impl;
+package com.jycz.qingyun.service.serviceImpl;
 
 import com.jycz.qingyun.mapper.CourseMapper;
 import com.jycz.qingyun.model.dto.CourseCreateRequest;
@@ -6,7 +6,6 @@ import com.jycz.qingyun.model.dto.CourseResponse;
 import com.jycz.qingyun.model.entity.Course;
 import com.jycz.qingyun.service.CourseService;
 import com.jycz.qingyun.utils.CourseCodeGenerator;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

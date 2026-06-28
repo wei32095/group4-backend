@@ -6,7 +6,6 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface PointsRecordMapper {
-
     /**
      * 获取用户最新积分余额
      */
