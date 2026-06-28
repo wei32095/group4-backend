@@ -17,8 +17,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/qingyun/login",   // 登录接口
-                        "/hello"            // 健康检查
+                        "/qingyun/login",          // Web 端登录
+                        "/hello"                   // 健康检查
                 );
     }
 }

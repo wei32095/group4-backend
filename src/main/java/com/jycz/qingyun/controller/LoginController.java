@@ -4,6 +4,7 @@ import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.LoginRequest;
 import com.jycz.qingyun.service.UserService;
 import com.jycz.qingyun.model.vo.LoginVO;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,10 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class LoginController {
 
     @Autowired
-    private UserService userService;  // 注入的是接口，不是实现类
+    private UserService userService;
 
     @PostMapping("/login")
-    public ApiResult<LoginVO> login(@RequestBody LoginRequest request) {
+    public ApiResult<LoginVO> login(@Valid @RequestBody LoginRequest request) {
         return userService.login(request);
     }
 }
