@@ -9,7 +9,7 @@ import java.util.List;
 
 @Data
 public class AssignmentCreateRequest {
-
+//
     @NotNull(message = "课程ID不能为空")
     private Long courseId;
 

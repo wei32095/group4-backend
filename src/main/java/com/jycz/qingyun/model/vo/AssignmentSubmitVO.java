@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class AssignmentSubmitVO {
-
+//
     private Long assignmentId;
     private String status;
     private LocalDateTime submitTime;

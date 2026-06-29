@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 public class AssignmentGradeRequest {
-
+//
     @NotNull(message = "作业ID不能为空")
     private Long assignmentId;
 

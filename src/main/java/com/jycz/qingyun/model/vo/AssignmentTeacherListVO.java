@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class AssignmentTeacherListVO {
-
+//
     private Long assignmentId;
     private String assignmentTitle;
     private LocalDateTime deadline;

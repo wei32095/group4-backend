@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @Builder
 public class AssignmentDetailVO {
-
+    //
     private Long assignmentId;
     private Long courseId;
     private String assignmentTitle;
