@@ -1,33 +1,21 @@
-package com.jycz.qingyun.model.entity;
+package com.jycz.qingyun.model.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
+import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("course")
-public class Course {
+@Builder
+public class CourseCreateVO {
 
-    @TableId(type = IdType.AUTO)
     private Long id;
-
     private Long userId;
-
     private String courseTitle;
-
     private String description;
-
     private String cover;
-
     private Integer studentCount;
-
     private String courseCode;
-
     private String status;
-
-    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 }

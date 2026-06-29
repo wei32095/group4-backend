@@ -2,57 +2,109 @@ package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.CourseCreateRequest;
-import com.jycz.qingyun.model.dto.CourseResponse;
+import com.jycz.qingyun.model.dto.CourseJoinRequest;
+import com.jycz.qingyun.model.vo.*;
 import com.jycz.qingyun.service.CourseService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
+@Slf4j
 @RestController
-@RequestMapping("/api/course")
+@RequestMapping("/qingyun/course")
+@RequiredArgsConstructor
 public class CourseController {
 
-    @Autowired
-    private CourseService courseService;
+    private final CourseService courseService;
 
     @PostMapping("/create")
-    public ApiResult<CourseResponse> createCourse(
-            @RequestBody CourseCreateRequest request,
+    public ApiResult<CourseCreateVO> createCourse(
+            @Valid @RequestBody CourseCreateRequest request,
             HttpServletRequest httpRequest) {
 
-        // 模拟从Token中获取用户信息（实际项目中用JWT解析）
-        Long teacherId = 1L;
-        String teacherName = "王老师";
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
 
-        try {
-            CourseResponse response = courseService.createCourse(request, teacherId, teacherName);
-            return ApiResult.success("课程创建成功", response);
-        } catch (RuntimeException e) {
-            return ApiResult.error(400, e.getMessage());
+        if (role == null || role != 2) {
+            return ApiResult.error(403, "仅教师可创建课程");
         }
+
+        CourseCreateVO response = courseService.createCourse(request, userId);
+        return ApiResult.success("课程创建成功", response);
     }
 
-    @GetMapping("/list")
-    public ApiResult<List<CourseResponse>> getCourseList(HttpServletRequest httpRequest) {
-        Long teacherId = 1L;
+    @PostMapping("/join")
+    public ApiResult<CourseJoinVO> joinCourse(
+            @Valid @RequestBody CourseJoinRequest request,
+            HttpServletRequest httpRequest) {
 
-        try {
-            List<CourseResponse> list = courseService.getCourseList(teacherId);
-            return ApiResult.success(list);
-        } catch (RuntimeException e) {
-            return ApiResult.error(500, e.getMessage());
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 1) {
+            return ApiResult.error(403, "仅学生可加入课程");
         }
+
+        CourseJoinVO response = courseService.joinCourse(request, userId);
+        return ApiResult.success("加入课程成功", response);
     }
 
-    @GetMapping("/{courseId}")
-    public ApiResult<CourseResponse> getCourseDetail(@PathVariable Long courseId) {
-        try {
-            CourseResponse response = courseService.getCourseDetail(courseId);
-            return ApiResult.success(response);
-        } catch (RuntimeException e) {
-            return ApiResult.error(404, e.getMessage());
-        }
+    @GetMapping("/detail")
+    public ApiResult<CourseDetailVO> getCourseDetail(
+            @RequestParam Long courseId,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        CourseDetailVO response = courseService.getCourseDetail(courseId, userId, role);
+        return ApiResult.success(response);
     }
+
+    /**
+     * 学生课程列表
+     * /qingyun/course/student/list
+     */
+    @GetMapping("/student/list")
+    public ApiResult<List<CourseListStudentVO>> getStudentCourseList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 1) {
+            return ApiResult.error(403, "仅学生可查看");
+        }
+
+        List<CourseListStudentVO> response = courseService.getStudentCourseList(userId, pageNum, pageSize);
+        return ApiResult.success(response);
+    }
+
+    /**
+     * 老师课程列表
+     * GET /qingyun/course/teacher/list
+     */
+    @GetMapping("/teacher/list")
+    public ApiResult<List<CourseListTeacherVO>> getTeacherCourseList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 2) {
+            return ApiResult.error(403, "仅教师可查看");
+        }
+
+        List<CourseListTeacherVO> response = courseService.getTeacherCourseList(userId, pageNum, pageSize);
+        return ApiResult.success(response);
+    }
+
 }
