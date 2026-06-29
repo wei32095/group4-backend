@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class ClassCreateRequest {
+public class ClassCreateRequest {//
 
     @NotNull(message = "课程ID不能为空")
     private Long courseId;

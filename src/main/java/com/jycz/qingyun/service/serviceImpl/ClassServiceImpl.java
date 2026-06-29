@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor//
 public class ClassServiceImpl implements ClassService {
 
     private final ClassMapper classMapper;

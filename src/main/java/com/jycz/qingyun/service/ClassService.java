@@ -12,5 +12,5 @@ public interface ClassService {
 
     List<ClassStudentVO> getStudentClassList(Long courseId, Long studentId);
 
-    void endClass(Long classId, Long teacherId);
+    void endClass(Long classId, Long teacherId);//
 }
