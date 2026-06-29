@@ -1,14 +1,19 @@
 package com.jycz.qingyun.model.dto;
 
-public class CourseCreateRequest {
-    private String name;
-    private String description;
-    private String coverImage;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getCoverImage() { return coverImage; }
-    public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
+@Data
+public class CourseCreateRequest {
+
+    @NotBlank(message = "课程名称不能为空")
+    @Size(max = 100, message = "课程名称最多100个字符")
+    private String courseTitle;
+
+    @Size(max = 500, message = "课程描述最多500个字符")
+    private String description;
+
+    @Size(max = 500, message = "封面URL最多500个字符")
+    private String cover;
 }
