@@ -66,8 +66,8 @@ public class CourseController {
     }
 
     /**
-     * 学生课程列表
-     * GET /qingyun/course/student/list
+     * 学生课程的列表
+     * /qingyun/course/student/list
      */
     @GetMapping("/student/list")
     public ApiResult<List<CourseListStudentVO>> getStudentCourseList(
