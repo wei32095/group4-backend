@@ -15,5 +15,5 @@ public class CourseStudent {
 
     private Long userId;
 
-    private LocalDateTime joinedAt;
+    private LocalDateTime joinedAt;//
 }

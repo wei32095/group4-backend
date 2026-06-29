@@ -9,5 +9,5 @@ import org.apache.ibatis.annotations.Select;
 public interface CourseMapper extends BaseMapper<Course> {
 
     @Select("SELECT COUNT(*) FROM course WHERE course_code = #{courseCode}")
-    int countByCourseCode(String courseCode);
+    int countByCourseCode(String courseCode);//
 }

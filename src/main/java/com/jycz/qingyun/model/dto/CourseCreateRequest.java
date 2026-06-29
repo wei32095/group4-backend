@@ -15,5 +15,5 @@ public class CourseCreateRequest {
     private String description;
 
     @Size(max = 500, message = "封面URL最多500个字符")
-    private String cover;
+    private String cover;//
 }

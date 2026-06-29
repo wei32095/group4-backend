@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class CourseJoinVO {
 
     private Long courseId;
-    private String courseTitle;
+    private String courseTitle;//
     private String description;
     private String cover;
     private Integer studentCount;
