@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("users")  // 对应数据库表名
+@TableName("user")  // 对应数据库表名
 public class User {
 
     @TableId(type = IdType.AUTO)  // 自增主键

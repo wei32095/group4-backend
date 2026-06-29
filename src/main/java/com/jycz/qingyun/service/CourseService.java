@@ -1,11 +1,21 @@
 package com.jycz.qingyun.service;
 
 import com.jycz.qingyun.model.dto.CourseCreateRequest;
-import com.jycz.qingyun.model.dto.CourseResponse;
+import com.jycz.qingyun.model.dto.CourseJoinRequest;
+import com.jycz.qingyun.model.vo.*;
+
 import java.util.List;
 
 public interface CourseService {
-    CourseResponse createCourse(CourseCreateRequest request, Long teacherId, String teacherName);
-    CourseResponse getCourseDetail(Long courseId);
-    List<CourseResponse> getCourseList(Long teacherId);
+
+    CourseCreateVO createCourse(CourseCreateRequest request, Long teacherId);
+
+    CourseJoinVO joinCourse(CourseJoinRequest request, Long studentId);
+
+    CourseDetailVO getCourseDetail(Long courseId, Long userId, Integer role);
+
+    List<CourseListStudentVO> getStudentCourseList(Long studentId, Integer pageNum, Integer pageSize);
+
+    List<CourseListTeacherVO> getTeacherCourseList(Long teacherId, Integer pageNum, Integer pageSize);
+
 }

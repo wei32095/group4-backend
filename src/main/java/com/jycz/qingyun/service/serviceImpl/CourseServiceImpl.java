@@ -1,0 +1,255 @@
+package com.jycz.qingyun.service.serviceImpl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.jycz.qingyun.model.dto.CourseCreateRequest;
+import com.jycz.qingyun.model.dto.CourseJoinRequest;
+import com.jycz.qingyun.model.entity.Course;
+import com.jycz.qingyun.model.entity.CourseStudent;
+import com.jycz.qingyun.model.entity.User;
+import com.jycz.qingyun.model.vo.*;
+import com.jycz.qingyun.mapper.CourseMapper;
+import com.jycz.qingyun.mapper.CourseStudentMapper;
+import com.jycz.qingyun.mapper.UserMapper;
+import com.jycz.qingyun.service.CourseService;
+import com.jycz.qingyun.utils.BusinessException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CourseServiceImpl implements CourseService {
+
+    private final CourseMapper courseMapper;
+    private final CourseStudentMapper courseStudentMapper;
+    private final UserMapper userMapper;
+
+    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final Random RANDOM = new Random();
+
+    @Override
+    @Transactional
+    public CourseCreateVO createCourse(CourseCreateRequest request, Long teacherId) {
+        LambdaQueryWrapper<Course> nameWrapper = new LambdaQueryWrapper<>();
+        nameWrapper.eq(Course::getCourseTitle, request.getCourseTitle());
+        if (courseMapper.selectCount(nameWrapper) > 0) {
+            throw new BusinessException(409, "课程名称已存在");
+        }
+
+        String courseCode = generateUniqueCourseCode(request.getCourseTitle());
+
+        Course course = new Course();
+        course.setUserId(teacherId);
+        course.setCourseTitle(request.getCourseTitle());
+        course.setDescription(request.getDescription());
+        course.setCover(request.getCover());
+        course.setStudentCount(0);
+        course.setCourseCode(courseCode);
+        course.setStatus("active");
+
+        courseMapper.insert(course);
+        log.info("课程创建成功: courseId={}, courseCode={}", course.getId(), courseCode);
+
+        return CourseCreateVO.builder()
+                .id(course.getId())
+                .userId(course.getUserId())
+                .courseTitle(course.getCourseTitle())
+                .description(course.getDescription())
+                .cover(course.getCover())
+                .studentCount(course.getStudentCount())
+                .courseCode(course.getCourseCode())
+                .status(course.getStatus())
+                .createdAt(course.getCreatedAt())
+                .updatedAt(course.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public CourseJoinVO joinCourse(CourseJoinRequest request, Long studentId) {
+        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Course::getCourseCode, request.getCourseCode());
+        Course course = courseMapper.selectOne(wrapper);
+
+        if (course == null) {
+            throw new BusinessException(404, "课程码不存在");
+        }
+
+        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+        csWrapper.eq(CourseStudent::getCourseId, course.getId())
+                .eq(CourseStudent::getUserId, studentId);
+        if (courseStudentMapper.selectCount(csWrapper) > 0) {
+            throw new BusinessException(409, "您已加入该课程");
+        }
+
+        CourseStudent courseStudent = new CourseStudent();
+        courseStudent.setCourseId(course.getId());
+        courseStudent.setUserId(studentId);
+        courseStudent.setJoinedAt(LocalDateTime.now());
+        courseStudentMapper.insert(courseStudent);
+
+        course.setStudentCount(course.getStudentCount() + 1);
+        courseMapper.updateById(course);
+
+        User teacher = userMapper.selectById(course.getUserId());
+        String teacherName = (teacher != null) ? teacher.getName() : "未知老师";
+
+        return CourseJoinVO.builder()
+                .courseId(course.getId())
+                .courseTitle(course.getCourseTitle())
+                .description(course.getDescription())
+                .cover(course.getCover())
+                .studentCount(course.getStudentCount())
+                .teacherName(teacherName)
+                .joinedAt(courseStudent.getJoinedAt())
+                .build();
+    }
+
+    @Override
+    public CourseDetailVO getCourseDetail(Long courseId, Long userId, Integer role) {
+        Course course = courseMapper.selectById(courseId);
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
+        }
+
+        if (role == 1) {
+            LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+            csWrapper.eq(CourseStudent::getCourseId, courseId)
+                    .eq(CourseStudent::getUserId, userId);
+            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+                throw new BusinessException(403, "您未加入该课程，无权查看");
+            }
+        } else if (role == 2) {
+            if (!course.getUserId().equals(userId)) {
+                throw new BusinessException(403, "您不是该课程的教师，无权查看");
+            }
+        } else if (role == 3) {
+        } else {
+            throw new BusinessException(403, "无权查看");
+        }
+
+        User teacher = userMapper.selectById(course.getUserId());
+        String teacherName = (teacher != null) ? teacher.getName() : "未知老师";
+        String teacherAvatar = (teacher != null) ? teacher.getAvatar() : null;
+
+        return CourseDetailVO.builder()
+                .id(course.getId())
+                .courseTitle(course.getCourseTitle())
+                .description(course.getDescription())
+                .cover(course.getCover())
+                .studentCount(course.getStudentCount())
+                .courseCode(course.getCourseCode())
+                .status(course.getStatus())
+                .teacherName(teacherName)
+                .teacherAvatar(teacherAvatar)
+                .createdAt(course.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    public List<CourseListStudentVO> getStudentCourseList(Long studentId, Integer pageNum, Integer pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+
+        List<CourseStudent> courseStudents = courseStudentMapper.selectList(
+                new LambdaQueryWrapper<CourseStudent>()
+                        .eq(CourseStudent::getUserId, studentId)
+                        .last("LIMIT " + offset + "," + pageSize)
+        );
+
+        if (courseStudents.isEmpty()) return new ArrayList<>();
+
+        List<Long> courseIds = courseStudents.stream()
+                .map(CourseStudent::getCourseId)
+                .collect(Collectors.toList());
+
+        List<Course> courses = courseMapper.selectBatchIds(courseIds);
+        Map<Long, Course> courseMap = courses.stream()
+                .collect(Collectors.toMap(Course::getId, c -> c));
+        Map<Long, LocalDateTime> joinedTimeMap = courseStudents.stream()
+                .collect(Collectors.toMap(CourseStudent::getCourseId, CourseStudent::getJoinedAt));
+
+        List<Long> teacherIds = courses.stream().map(Course::getUserId).collect(Collectors.toList());
+        Map<Long, User> teacherMap = userMapper.selectBatchIds(teacherIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        return courses.stream().map(course -> {
+            User teacher = teacherMap.get(course.getUserId());
+            return CourseListStudentVO.builder()
+                    .courseId(course.getId())
+                    .courseTitle(course.getCourseTitle())
+                    .cover(course.getCover())
+                    .teacherName(teacher != null ? teacher.getName() : "未知老师")
+                    .studentCount(course.getStudentCount())
+                    .joinedAt(joinedTimeMap.get(course.getId()))
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CourseListTeacherVO> getTeacherCourseList(Long teacherId, Integer pageNum, Integer pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+
+        List<Course> courses = courseMapper.selectList(
+                new LambdaQueryWrapper<Course>()
+                        .eq(Course::getUserId, teacherId)
+                        .orderByDesc(Course::getCreatedAt)
+                        .last("LIMIT " + offset + "," + pageSize)
+        );
+
+        if (courses.isEmpty()) return new ArrayList<>();
+
+        return courses.stream().map(course ->
+                CourseListTeacherVO.builder()
+                        .courseId(course.getId())
+                        .courseTitle(course.getCourseTitle())
+                        .cover(course.getCover())
+                        .studentCount(course.getStudentCount())
+                        .courseCode(course.getCourseCode())
+                        .status(course.getStatus())
+                        .createdAt(course.getCreatedAt())
+                        .build()
+        ).collect(Collectors.toList());
+    }
+
+    // ========== 工具方法 ==========
+    private String generateUniqueCourseCode(String courseTitle) {
+        String prefix = getPinyinInitials(courseTitle);
+        String year = String.valueOf(LocalDateTime.now().getYear()).substring(2);
+        String code;
+        int attempts = 0;
+        int maxAttempts = 100;
+
+        do {
+            String random = generateRandomString(4);
+            code = prefix + year + random;
+            attempts++;
+            if (attempts > maxAttempts) {
+                random = generateRandomString(6);
+                code = prefix + year + random;
+            }
+        } while (courseMapper.countByCourseCode(code) > 0);
+
+        return code;
+    }
+
+    private String getPinyinInitials(String courseTitle) {
+        if (courseTitle.length() >= 2) {
+            return courseTitle.substring(0, 2).toUpperCase();
+        }
+        return courseTitle.toUpperCase();
+    }
+
+    private String generateRandomString(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(CHARACTERS.charAt(RANDOM.nextInt(CHARACTERS.length())));
+        }
+        return sb.toString();
+    }
+}
