@@ -340,3 +340,5 @@ ALTER TABLE class
     DROP COLUMN created_at,
     DROP COLUMN updated_at,
     ADD COLUMN create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间';
+
+ALTER TABLE `user` MODIFY `phone` VARCHAR(20) NULL COMMENT '手机号';

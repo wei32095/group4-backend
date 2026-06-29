@@ -159,7 +159,6 @@ public class UserServiceImpl implements UserService {
             user.setOpenid(openid);
             user.setName("微信用户");
             user.setPassword("");
-            user.setPhone("wx_" + openid);
             user.setRole(1);
             user.setStatus(1);
             userMapper.insert(user);
