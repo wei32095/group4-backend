@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @TableName("question")
 public class Question {
-
+//
     @TableId(type = IdType.AUTO)
     private Long id;
 

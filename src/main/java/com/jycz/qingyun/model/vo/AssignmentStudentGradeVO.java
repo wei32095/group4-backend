@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @Builder
 public class AssignmentStudentGradeVO {
-
+//
     private Long assignmentId;
     private String assignmentTitle;
     private Integer maxScore;
