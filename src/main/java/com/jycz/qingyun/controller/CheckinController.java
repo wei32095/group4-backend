@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/qingyun/checkin")
+@RequestMapping("/qingyun/checkin")//
 @RequiredArgsConstructor
 public class CheckinController {
 

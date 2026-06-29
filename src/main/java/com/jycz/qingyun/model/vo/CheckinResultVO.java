@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class CheckinResultVO {
+public class CheckinResultVO {//
 
     private Long classId;
     private String classTitle;

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class CheckinSubmitVO {
+public class CheckinSubmitVO {//
 
     private Long classId;
     private String classTitle;
