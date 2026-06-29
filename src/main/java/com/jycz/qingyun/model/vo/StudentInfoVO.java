@@ -11,6 +11,8 @@ public class StudentInfoVO {
     private String name;
     private String phone;
     private String avatar;
+    private String bio;
     private Integer role;
     private Integer status;
+    private Integer points;
 }

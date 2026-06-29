@@ -1,9 +1,14 @@
 package com.jycz.qingyun.model.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class LoginRequest {
-    private String phone;    // 手机号
-    private String password; // 密码
+
+    @NotBlank(message = "手机号不能为空")
+    private String phone;
+
+    @NotBlank(message = "密码不能为空")
+    private String password;
 }
