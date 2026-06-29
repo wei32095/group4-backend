@@ -7,7 +7,7 @@ import java.util.Map;
 @Data
 @Builder
 public class CourseReviewSummaryVO {
-
+//
     private Long courseId;
     private Long totalReviews;
     private Double avgStar;

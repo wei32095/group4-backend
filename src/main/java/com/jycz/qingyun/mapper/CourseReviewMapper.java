@@ -19,5 +19,5 @@ public interface CourseReviewMapper extends BaseMapper<CourseReview> {
     Double selectAvgStar(@Param("courseId") Long courseId);
 
     @Select("SELECT star, COUNT(*) AS count FROM course_review WHERE course_id = #{courseId} GROUP BY star")
-    List<Map<String, Object>> selectStarStats(@Param("courseId") Long courseId);
+    List<Map<String, Object>> selectStarStats(@Param("courseId") Long courseId);//
 }

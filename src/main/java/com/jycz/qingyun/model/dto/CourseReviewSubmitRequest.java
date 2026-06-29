@@ -16,5 +16,5 @@ public class CourseReviewSubmitRequest {
     @Max(value = 5, message = "星级最大为5")
     private Integer star;
 
-    private String reviewContent;
+    private String reviewContent;//
 }

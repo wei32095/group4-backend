@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("course_review")
-public class CourseReview {
+public class CourseReview {//
 
     @TableId(type = IdType.AUTO)
     private Long id;

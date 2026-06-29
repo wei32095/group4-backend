@@ -15,7 +15,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/qingyun/review")
+@RequestMapping("/qingyun/review")//
 @RequiredArgsConstructor
 public class CourseReviewController {
 
