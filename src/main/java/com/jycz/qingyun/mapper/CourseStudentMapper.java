@@ -10,5 +10,5 @@ import org.apache.ibatis.annotations.Select;
 public interface CourseStudentMapper extends BaseMapper<CourseStudent> {
 
     @Select("SELECT COUNT(*) FROM course_student WHERE course_id = #{courseId}")
-    int countByCourseId(@Param("courseId") Long courseId);//
+    int countByCourseId(@Param("courseId") Long courseId);
 }

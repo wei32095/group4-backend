@@ -53,7 +53,7 @@ public class CourseServiceImpl implements CourseService {
         course.setCourseCode(courseCode);
         course.setStatus("active");
 
-        courseMapper.insert(course);//
+        courseMapper.insert(course);
         log.info("课程创建成功: courseId={}, courseCode={}", course.getId(), courseCode);
 
         return CourseCreateVO.builder()

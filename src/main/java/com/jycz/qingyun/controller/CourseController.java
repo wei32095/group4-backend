@@ -66,7 +66,7 @@ public class CourseController {
     }
 
     /**
-     * 学生课程的列表
+     * 学生课程列表
      * /qingyun/course/student/list
      */
     @GetMapping("/student/list")

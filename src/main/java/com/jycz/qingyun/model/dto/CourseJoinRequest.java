@@ -7,5 +7,5 @@ import lombok.Data;
 public class CourseJoinRequest {
 
     @NotBlank(message = "课程码不能为空")
-    private String courseCode;//
+    private String courseCode;
 }
