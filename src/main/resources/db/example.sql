@@ -170,3 +170,29 @@ INSERT INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice
 INSERT INTO `student_analysis` (`id`, `user_id`, `total_study_duration`, `assignment_correct_rate`, `week_study_duration`, `updated_at`) VALUES
                                                                                                                                              (1, 2, 14400, 85.50, 3600, NOW()),
                                                                                                                                              (2, 3, 7200, 70.00, 1800, NOW());
+
+
+-- 更新已有记录
+UPDATE notice SET notice_type = 4 WHERE id = 1;  -- 批改完成
+UPDATE notice SET notice_type = 1 WHERE id = 2;  -- 上课提醒
+UPDATE notice SET notice_type = 2 WHERE id = 3;  -- 作业发布
+
+-- 新增 7 条测试数据（覆盖所有类型）
+INSERT INTO notice(user_id, notice_title, notice_content, notice_status, notice_type, push_time) VALUES
+                                                                                                     (2, '系统升级通知', '平台将于7月1日凌晨2:00-5:00进行系统升级', 0, 0, '2026-06-29 10:00:00'),
+                                                                                                     (2, '第三节上课提醒', '「Java高级编程」第三讲将于7月15日14:00开始', 0, 1, '2026-06-29 09:00:00'),
+                                                                                                     (3, '新作业发布', '第三次作业：并发编程练习已发布，截止日期7月20日', 0, 2, '2026-06-28 15:00:00'),
+                                                                                                     (2, '作业提交提醒', '李小明提交了第2章作业，等待批改', 0, 3, '2026-06-28 14:00:00'),
+                                                                                                     (3, '作业批改通知', '您的第二次作业已批改，得分92', 1, 4, '2026-06-28 11:00:00'),
+                                                                                                     (2, '课程通知', '暑期课程安排已更新，请查看最新课表', 0, 0, '2026-06-27 16:00:00'),
+                                                                                                     (3, '上课提醒', '「数据库系统原理」本周五课程取消', 0, 1, '2026-06-27 10:00:00');
+
+
+-- =============================================
+-- 用户背包测试数据
+-- =============================================
+INSERT INTO `user_item` (`user_id`, `item_id`, `quantity`) VALUES
+                                                               (1, 1, 3),   -- 用户1有3个浇水壶
+                                                               (1, 2, 1),   -- 用户1有1个肥料包
+                                                               (2, 1, 5);   -- 用户2有5个浇水壶
+
