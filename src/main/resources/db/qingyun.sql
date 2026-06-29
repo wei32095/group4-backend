@@ -312,9 +312,31 @@ CREATE TABLE `course_student` (
                                   `course_id` BIGINT NOT NULL COMMENT '课程ID',
                                   `user_id` BIGINT NOT NULL COMMENT '学生ID',
                                   `joined_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '加入时间',
-                                  UNIQUE KEY uk_course_student (`course_id`, `student_id`),
+                                  UNIQUE KEY uk_course_student (`course_id`, `user_id`),
                                   INDEX idx_course_id (`course_id`),
-                                  INDEX idx_student_id (`student_id`)
+                                  INDEX idx_student_id (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课程-学生关联表';
 
+-- =============================================
+-- 20. 用户背包表（user_item）
+-- =============================================
+CREATE TABLE `user_item` (
+                             `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
+                             `user_id` BIGINT NOT NULL COMMENT '用户ID',
+                             `item_id` BIGINT NOT NULL COMMENT '道具ID',
+                             `quantity` INT DEFAULT 0 COMMENT '拥有数量',
+                             `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                             `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                             UNIQUE KEY uk_user_item (`user_id`, `item_id`),
+                             INDEX idx_user_id (`user_id`),
+                             INDEX idx_item_id (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户背包表';
 
+-- 加列
+ALTER TABLE notice ADD COLUMN notice_type TINYINT DEFAULT 0 COMMENT
+    '通知类型：0-通用，1-上课提醒，2-作业发布，3-作业提交，4-批改完成' AFTER notice_status;
+
+ALTER TABLE class
+    DROP COLUMN created_at,
+    DROP COLUMN updated_at,
+    ADD COLUMN create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间';
