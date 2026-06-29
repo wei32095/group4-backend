@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Builder
 public class CourseListTeacherVO {
 
-    private Long courseId;//
+    private Long courseId;
     private String courseTitle;
     private String cover;
     private Integer studentCount;

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class CourseListStudentVO {
 
     private Long courseId;
-    private String courseTitle;//
+    private String courseTitle;
     private String cover;
     private String teacherName;
     private Integer studentCount;

@@ -17,5 +17,5 @@ public class CourseDetailVO {
     private String status;
     private String teacherName;
     private String teacherAvatar;
-    private LocalDateTime createdAt;//
+    private LocalDateTime createdAt;
 }

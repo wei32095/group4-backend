@@ -17,5 +17,5 @@ public class CourseCreateVO {
     private String courseCode;
     private String status;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;//
+    private LocalDateTime updatedAt;
 }
