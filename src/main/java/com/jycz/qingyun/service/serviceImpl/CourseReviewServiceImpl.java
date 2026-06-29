@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor//
 public class CourseReviewServiceImpl implements CourseReviewService {
 
     private final CourseReviewMapper courseReviewMapper;

@@ -7,7 +7,7 @@ import com.jycz.qingyun.model.vo.CourseReviewVO;
 import java.util.List;
 
 public interface CourseReviewService {
-
+//
     /**
      * 提交/更新课程评价
      */
