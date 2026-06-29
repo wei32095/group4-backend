@@ -17,5 +17,5 @@ public interface CourseService {
     List<CourseListStudentVO> getStudentCourseList(Long studentId, Integer pageNum, Integer pageSize);
 
     List<CourseListTeacherVO> getTeacherCourseList(Long teacherId, Integer pageNum, Integer pageSize);
-//
+
 }
