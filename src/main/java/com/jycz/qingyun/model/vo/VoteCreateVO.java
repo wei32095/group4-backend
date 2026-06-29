@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class VoteCreateVO {
+public class VoteCreateVO {//
 
     private Long id;
     private Long classId;

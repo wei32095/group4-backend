@@ -4,6 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.jycz.qingyun.model.entity.VoteRecord;
 import org.apache.ibatis.annotations.Mapper;
 
-@Mapper
+@Mapper//
 public interface VoteRecordMapper extends BaseMapper<VoteRecord> {
 }

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("class_vote")
 public class ClassVote {
-
+//
     @TableId(type = IdType.AUTO)
     private Long id;
 

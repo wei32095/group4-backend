@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("vote_record")
-public class VoteRecord {
+public class VoteRecord {//
 
     @TableId(type = IdType.AUTO)
     private Long id;

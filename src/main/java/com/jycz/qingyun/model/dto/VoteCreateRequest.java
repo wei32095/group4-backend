@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class VoteCreateRequest {
+public class VoteCreateRequest {//
 
     @NotNull(message = "课堂ID不能为空")
     private Long classId;
