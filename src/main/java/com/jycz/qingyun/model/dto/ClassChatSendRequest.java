@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-@Data
+@Data//
 public class ClassChatSendRequest {
 
     @NotNull(message = "课堂ID不能为空")

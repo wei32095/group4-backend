@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor//
 public class ClassChatServiceImpl implements ClassChatService {
 
     private final ClassChatMapper classChatMapper;
