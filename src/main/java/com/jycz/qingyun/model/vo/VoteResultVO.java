@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @Builder
 public class VoteResultVO {
-
+//
     private Long id;
     private String heading;
     private List<String> options;

@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class VoteSubmitVO {
+public class VoteSubmitVO {//
 
     private Long voteId;
     private String selectedOption;

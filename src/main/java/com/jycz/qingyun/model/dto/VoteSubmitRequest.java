@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class VoteSubmitRequest {
+public class VoteSubmitRequest {//
 
     @NotNull(message = "投票ID不能为空")
     private Long voteId;
