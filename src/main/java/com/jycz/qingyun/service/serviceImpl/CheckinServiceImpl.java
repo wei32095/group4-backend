@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor//
 public class CheckinServiceImpl implements CheckinService {
 
     private final ClassCheckMapper classCheckMapper;

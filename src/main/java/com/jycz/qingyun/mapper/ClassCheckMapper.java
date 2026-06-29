@@ -5,5 +5,5 @@ import com.jycz.qingyun.model.entity.ClassCheck;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface ClassCheckMapper extends BaseMapper<ClassCheck> {
+public interface ClassCheckMapper extends BaseMapper<ClassCheck> {//
 }
