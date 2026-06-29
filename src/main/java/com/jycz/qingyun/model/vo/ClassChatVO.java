@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class ClassChatVO {
+public class ClassChatVO {//
 
     private Long id;
     private Long userId;
