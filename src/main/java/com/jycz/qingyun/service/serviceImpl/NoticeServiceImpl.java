@@ -11,6 +11,7 @@ import com.jycz.qingyun.service.NoticeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,6 +51,46 @@ public class NoticeServiceImpl implements NoticeService {
         listVO.setPendingGradeCount(pendingGradeCount);
 
         return ApiResult.success(listVO);
+    }
+
+    @Override
+    public void addNotice(Long userId, String noticeTitle, String noticeContent, Integer noticeType) {
+        Notice notice = new Notice();
+        notice.setUserId(userId);
+        notice.setNoticeTitle(noticeTitle);
+        notice.setNoticeContent(noticeContent);
+        notice.setNoticeStatus(0);  // 未读
+        notice.setNoticeType(noticeType);
+        notice.setPushTime(LocalDateTime.now());
+        noticeMapper.insert(notice);
+    }
+
+    @Override
+    public void markRead(Long noticeId, Long userId) {
+        Notice notice = noticeMapper.selectById(noticeId);
+        if (notice == null) return;  // 通知不存在，幂等忽略
+
+        // 只能标记自己的通知
+        if (!notice.getUserId().equals(userId)) {
+            throw new com.jycz.qingyun.utils.BusinessException(403, "无权操作该通知");
+        }
+
+        if (notice.getNoticeStatus() == 1) return;  // 已读，幂等
+
+        notice.setNoticeStatus(1);
+        noticeMapper.updateById(notice);
+    }
+
+    @Override
+    public void markAllRead(Long userId) {
+        Notice update = new Notice();
+        update.setNoticeStatus(1);
+
+        LambdaQueryWrapper<Notice> wrapper = new LambdaQueryWrapper<Notice>()
+                .eq(Notice::getUserId, userId)
+                .eq(Notice::getNoticeStatus, 0);
+
+        noticeMapper.update(update, wrapper);
     }
 
     private NoticeVO toVO(Notice notice) {
