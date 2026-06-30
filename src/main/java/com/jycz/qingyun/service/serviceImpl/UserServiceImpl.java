@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setPhone(request.getPhone());
         user.setPassword(request.getPassword());
-        user.setName(request.getName());
+        user.setName(request.getName().trim());
         user.setRole(request.getRole());
         user.setStatus(1);
         userMapper.insert(user);
@@ -253,16 +253,13 @@ public class UserServiceImpl implements UserService {
         }
 
         // 至少提供一个修改字段
-        if (request.getName() == null && request.getPhone() == null
+        if (request.getName() == null
                 && request.getAvatar() == null && request.getBio() == null) {
             return ApiResult.error(400, "至少提供一个修改字段");
         }
 
         if (request.getName() != null) {
             user.setName(request.getName());
-        }
-        if (request.getPhone() != null) {
-            user.setPhone(request.getPhone());
         }
         if (request.getAvatar() != null) {
             user.setAvatar(request.getAvatar());
