@@ -17,10 +17,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/qingyun/login",          // Web 端登录
-                        "/qingyun/login/mp",       // 小程序端登录
-                        "/qingyun/register",       // 注册
-                        "/hello"                   // 健康检查
+                        "/qingyun/login",              // 密码登录
+                        "/qingyun/login/mp",           // 小程序登录
+                        "/qingyun/login/verify-code",  // 验证码登录
+                        "/qingyun/register",           // 注册
+                        "/qingyun/verify-code/**",     // 验证码（无需登录）
+                        "/hello"                       // 健康检查
                 );
     }
 }

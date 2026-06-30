@@ -5,6 +5,7 @@ import com.jycz.qingyun.model.dto.CreateStudyRoomRequest;
 import com.jycz.qingyun.model.dto.EndStudyRoomRequest;
 import com.jycz.qingyun.model.vo.StudyRoomEndVO;
 import com.jycz.qingyun.model.vo.StudyRoomRecordListVO;
+import com.jycz.qingyun.model.vo.StudyRoomStatisticVO;
 import com.jycz.qingyun.model.vo.StudyRoomVO;
 import com.jycz.qingyun.service.StudyRoomService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,6 +47,13 @@ public class StudyRoomController {
         } catch (RuntimeException e) {
             return ApiResult.error(400, e.getMessage());
         }
+    }
+
+    @GetMapping("/statistic")
+    public ApiResult<StudyRoomStatisticVO> getStatistic(HttpServletRequest httpRequest) {
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        StudyRoomStatisticVO vo = studyRoomService.getStudyStatistic(userId);
+        return ApiResult.success(vo);
     }
 
     @GetMapping("/records")

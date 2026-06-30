@@ -12,6 +12,11 @@ public interface UserService {
     ApiResult<LoginVO> login(LoginRequest request);
 
     /**
+     * 验证码登录
+     */
+    ApiResult<LoginVO> loginByVerifyCode(VerifyCodeLoginRequest request);
+
+    /**
      * 注册
      */
     ApiResult<LoginVO> register(RegisterRequest request);
