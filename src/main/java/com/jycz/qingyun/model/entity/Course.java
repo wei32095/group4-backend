@@ -25,6 +25,12 @@ public class Course {
 
     private String status;
 
+    private Integer auditStatus;
+
+    private String auditRemark;
+
+    private LocalDateTime auditTime;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
