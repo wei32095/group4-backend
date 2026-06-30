@@ -12,6 +12,7 @@ import com.jycz.qingyun.mapper.CourseMapper;
 import com.jycz.qingyun.mapper.CourseStudentMapper;
 import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.service.CourseService;
+import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +31,12 @@ public class CourseServiceImpl implements CourseService {
     private final CourseMapper courseMapper;
     private final CourseStudentMapper courseStudentMapper;
     private final UserMapper userMapper;
+    private final NoticeService noticeService;
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final Random RANDOM = new Random();
+
+
 
     @Override
     @Transactional
@@ -106,6 +110,9 @@ public class CourseServiceImpl implements CourseService {
         User teacher = userMapper.selectById(course.getUserId());
         String teacherName = (teacher != null) ? teacher.getName() : "未知老师";
 
+        // 7. 发送加入课程通知给学生
+        noticeService.sendJoinCourseNotice(studentId, course.getCourseTitle());
+
         return CourseJoinVO.builder()
                 .courseId(course.getId())
                 .courseTitle(course.getCourseTitle())
@@ -115,6 +122,8 @@ public class CourseServiceImpl implements CourseService {
                 .teacherName(teacherName)
                 .joinedAt(courseStudent.getJoinedAt())
                 .build();
+
+
     }
 
     @Override
@@ -291,6 +300,11 @@ public class CourseServiceImpl implements CourseService {
         log.info("课程审核完成: courseId={}, adminId={}, status={}",
                 course.getId(), adminId, request.getAuditStatus());
 
+        // ✅ 如果审核通过，发送通知给教师
+        if (request.getAuditStatus() == 1) {
+            noticeService.sendAuditSuccessNotice(course.getUserId(), course.getCourseTitle());
+        }
+
         return CourseAuditVO.builder()
                 .courseId(course.getId())
                 .courseTitle(course.getCourseTitle())
@@ -324,6 +338,9 @@ public class CourseServiceImpl implements CourseService {
         courseMapper.updateById(course);
 
         log.info("课程已结束: courseId={}, teacherId={}", courseId, teacherId);
+
+        // ✅ 发送课程结束通知给所有学生
+        noticeService.sendCourseEndNotice(courseId, course.getCourseTitle());
     }
 
     @Override
