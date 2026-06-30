@@ -10,6 +10,7 @@ import com.jycz.qingyun.model.dto.LoginRequest;
 import com.jycz.qingyun.model.dto.MpLoginRequest;
 import com.jycz.qingyun.model.dto.PasswordUpdateRequest;
 import com.jycz.qingyun.model.dto.RegisterRequest;
+import com.jycz.qingyun.utils.BusinessException;
 import com.jycz.qingyun.utils.JwtUtil;
 import com.jycz.qingyun.utils.WxUtil;
 import com.jycz.qingyun.model.entity.User;
@@ -19,9 +20,15 @@ import com.jycz.qingyun.model.vo.LoginVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
+import com.jycz.qingyun.model.dto.BanUserRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -321,4 +328,51 @@ public class UserServiceImpl implements UserService {
 
         return login;
     }
+
+    @Override
+    @Transactional
+    public void banUser(BanUserRequest request, Long adminId) {
+        // 1. 查询目标用户
+        User targetUser = userMapper.selectById(request.getUserId());
+        if (targetUser == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        // 2. 不能封禁管理员
+        if (targetUser.getRole() == 3) {
+            throw new BusinessException(403, "不能封禁管理员账号");
+        }
+
+        // 3. 不能封禁自己
+        if (targetUser.getId().equals(adminId)) {
+            throw new BusinessException(403, "不能封禁自己的账号");
+        }
+
+        // 4. 封禁操作
+        if (request.getStatus() == 0) {
+            // 封禁
+            if (request.getBanExpireTime() == null) {
+                throw new BusinessException(400, "封禁时请指定封禁到期时间");
+            }
+            if (request.getBanExpireTime().isBefore(LocalDateTime.now())) {
+                throw new BusinessException(400, "封禁到期时间不能早于当前时间");
+            }
+            targetUser.setStatus(0);
+            targetUser.setBanExpireTime(request.getBanExpireTime());
+            targetUser.setBanReason(request.getBanReason());
+            log.info("用户被封禁: userId={}, 操作人={}", targetUser.getId(), adminId);
+        } else if (request.getStatus() == 1) {
+            // 解封
+            targetUser.setStatus(1);
+            targetUser.setBanExpireTime(null);
+            targetUser.setBanReason(null);
+            log.info("用户被解封: userId={}, 操作人={}", targetUser.getId(), adminId);
+        } else {
+            throw new BusinessException(400, "状态值错误，0-封禁，1-解封");
+        }
+
+        // 5. 更新数据库
+        userMapper.updateById(targetUser);
+    }
+
 }

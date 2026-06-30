@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 @TableName("user")  // 对应数据库表名
 public class User {
@@ -27,4 +29,8 @@ public class User {
     private Integer role;   // 1-学员 2-讲师 3-管理员
 
     private Integer status; // 1-正常 0-禁用
+
+    private LocalDateTime banExpireTime;
+
+    private String banReason;
 }
