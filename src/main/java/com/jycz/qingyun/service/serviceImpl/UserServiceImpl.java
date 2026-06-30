@@ -222,30 +222,42 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ApiResult<Boolean> bindPhone(Long userId, BindPhoneRequest request) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            return ApiResult.error(401, "用户不存在");
+        // 1. 校验验证码
+        boolean valid = verifyCodeService.verifyCode(request.getPhone(), request.getCode());
+        if (!valid) {
+            return ApiResult.error(400, "验证码错误或已过期");
         }
-
-        // 1. 解密手机号
-        String phone = wxUtil.decryptPhone(request.getEncryptedData(), request.getIv(), user.getOpenid());
 
         // 2. 查手机号是否已被其他账号绑定
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getPhone, phone);
+        wrapper.eq(User::getPhone, request.getPhone());
         User existUser = userMapper.selectOne(wrapper);
 
         if (existUser != null && !existUser.getId().equals(userId)) {
-            // 手机号已被其他账号绑定 → 合并：把 openid 转移到已有账号
-            existUser.setOpenid(user.getOpenid());
+            // 手机号已被其他账号绑定
+            User currentUser = userMapper.selectById(userId);
+            if (currentUser == null) {
+                return ApiResult.error(401, "用户不存在");
+            }
+
+            // 如果已有账号也绑了微信 → 不能合并，报错
+            if (existUser.getOpenid() != null) {
+                return ApiResult.error(409, "该手机号已被其他账号绑定，且该账号已绑定微信");
+            }
+
+            // 合并：把当前账号的 openid 转移到已有账号
+            existUser.setOpenid(currentUser.getOpenid());
             userMapper.updateById(existUser);
-            // 删除当前微信账号（或标记废弃）
             userMapper.deleteById(userId);
             return ApiResult.success(true);
         }
 
         // 3. 直接绑定到当前账号
-        user.setPhone(phone);
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return ApiResult.error(401, "用户不存在");
+        }
+        user.setPhone(request.getPhone());
         userMapper.updateById(user);
         return ApiResult.success(true);
     }

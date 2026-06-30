@@ -44,4 +44,5 @@ public class InfoController {
         Long userId = (Long) request.getAttribute("userId");
         return userService.updatePassword(userId, body);
     }
+
 }

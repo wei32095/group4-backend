@@ -43,6 +43,9 @@ CREATE TABLE `course` (
     `student_count` INT DEFAULT '0' COMMENT '学生人数',
     `course_code` VARCHAR(50) NOT NULL COMMENT '课程码',
     `status` VARCHAR(20) DEFAULT 'active' COMMENT '状态：active-进行中，archived-已归档',
+    `audit_status` TINYINT DEFAULT '0' COMMENT '审核状态：0-待审，1-通过，2-驳回',
+    `audit_remark` VARCHAR(255) DEFAULT '' COMMENT '审核备注',
+    `audit_time` DATETIME DEFAULT NULL COMMENT '审核时间',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
@@ -428,9 +431,9 @@ INSERT INTO `user` (`id`, `name`, `password`, `phone`, `bio`, `avatar`, `role`, 
 (4, 'admin', 'encrypted_pwd_4', '13800000004', '系统管理员', 'https://example.com/avatar4.jpg', 3, NULL, 1, NOW(), NOW());
 
 -- 2. 课程
-INSERT INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Java高级编程', '深入理解Java虚拟机、并发编程', 'https://example.com/course1.jpg', 2, 'JAVA2026', 'active', NOW(), NOW()),
-(2, 1, '数据库系统原理', 'MySQL、事务、索引优化', 'https://example.com/course2.jpg', 1, 'DB2026', 'archived', NOW(), NOW());
+INSERT INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `audit_status`, `audit_remark`, `audit_time`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Java高级编程', '深入理解Java虚拟机、并发编程', 'https://example.com/course1.jpg', 2, 'JAVA2026', 'active', 1, '', NOW(), NOW(), NOW()),
+(2, 1, '数据库系统原理', 'MySQL、事务、索引优化', 'https://example.com/course2.jpg', 1, 'DB2026', 'archived', 0, '待审核', NULL, NOW(), NOW());
 
 -- 3. 课程-学生关联
 INSERT INTO `course_student` (`id`, `course_id`, `user_id`, `joined_at`) VALUES
