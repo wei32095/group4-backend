@@ -196,4 +196,10 @@ public class NoticeServiceImpl implements NoticeService {
         String content = "您的课程【" + courseTitle + "】已审核通过，学生可加入学习！";
         addNotice(teacherId, title, content, 9);
     }
+    @Override
+    public void sendProblemRepliedNotice(Long questionAuthorId, String replierName, String problemTitle) {
+        String title = "你的问题有新回复";
+        String content = replierName + "回复了你的问题：【" + problemTitle + "】，请及时查看。";
+        addNotice(questionAuthorId, title, content, 10);
+    }
 }

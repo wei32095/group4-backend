@@ -60,4 +60,8 @@ public interface NoticeService {
      * 发送课程审核通过通知（给教师）
      */
     void sendAuditSuccessNotice(Long teacherId, String courseTitle);
+    /**
+     * 发送问题被回复通知（给问题发布者）
+     */
+    void sendProblemRepliedNotice(Long questionAuthorId, String replierName, String problemTitle);
 }

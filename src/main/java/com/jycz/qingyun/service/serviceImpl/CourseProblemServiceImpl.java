@@ -250,16 +250,28 @@ public class CourseProblemServiceImpl implements CourseProblemService {
         log.info("回复成功: replyId={}, problemId={}, userId={}",
                 reply.getId(), request.getProblemId(), userId);
 
-        // 5. 获取用户信息
-        User user = userMapper.selectById(userId);
+        // 5. ✅ 获取回复者信息（必须有）
+        User replier = userMapper.selectById(userId);
+
+        // 6. 发送问题被回复通知给问题发布者（自己回复自己不通知）
+        if (!problem.getUserId().equals(userId) && replier != null) {
+            noticeService.sendProblemRepliedNotice(
+                    problem.getUserId(),
+                    replier.getName(),
+                    problem.getTitle()
+            );
+        }
+
+        // 7. 获取问题发布者信息
+        User author = userMapper.selectById(problem.getUserId());
 
         return CourseProblemVO.builder()
                 .problemId(problem.getId())
                 .courseId(problem.getCourseId())
-                .userId(userId)
-                .userName(user != null ? user.getName() : "未知用户")
-                .userAvatar(user != null ? user.getAvatar() : null)
-                .userRole(user != null ? user.getRole() : null)
+                .userId(problem.getUserId())
+                .userName(author != null ? author.getName() : "未知用户")
+                .userAvatar(author != null ? author.getAvatar() : null)
+                .userRole(author != null ? author.getRole() : null)
                 .title(problem.getTitle())
                 .content(problem.getContent())
                 .replyCount(problem.getReplyCount())
