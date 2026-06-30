@@ -9,12 +9,15 @@ import com.jycz.qingyun.model.entity.StudyRoom;
 import com.jycz.qingyun.model.vo.StudyRoomEndVO;
 import com.jycz.qingyun.model.vo.StudyRoomRecordListVO;
 import com.jycz.qingyun.model.vo.StudyRoomRecordVO;
+import com.jycz.qingyun.model.vo.StudyRoomStatisticVO;
 import com.jycz.qingyun.model.vo.StudyRoomVO;
 import com.jycz.qingyun.service.AnalysisService;
 import com.jycz.qingyun.service.StudyRoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -43,6 +46,12 @@ public class StudyRoomServiceImpl implements StudyRoomService {
                 throw new RuntimeException("倒计时模式必须设置计划时长");
             }
         }
+        if (request.getFocusMode() == null) {
+            throw new RuntimeException("专注模式不能为空");
+        }
+        if (request.getFocusMode() != 0 && request.getFocusMode() != 1) {
+            throw new RuntimeException("专注模式无效");
+        }
 
         // 2. 检查是否有进行中的自习
         LambdaQueryWrapper<StudyRoom> wrapper = new LambdaQueryWrapper<>();
@@ -56,7 +65,9 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         // 3. 创建记录
         StudyRoom studyRoom = new StudyRoom();
         studyRoom.setUserId(userId);
+        studyRoom.setGoal(request.getGoal() != null ? request.getGoal() : "自习");
         studyRoom.setMode(request.getMode());
+        studyRoom.setFocusMode(request.getFocusMode());
         studyRoom.setPlanTime(request.getMode() == 2 ? request.getPlanTime() : null);
         studyRoom.setStartTime(LocalDateTime.now());
         studyRoom.setScreenSwitchCount(0);
@@ -67,7 +78,9 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         // 4. 返回 VO
         StudyRoomVO vo = new StudyRoomVO();
         vo.setId(studyRoom.getId());
+        vo.setGoal(studyRoom.getGoal());
         vo.setMode(studyRoom.getMode());
+        vo.setFocusMode(studyRoom.getFocusMode());
         vo.setStartTime(studyRoom.getStartTime());
         vo.setPlanTime(studyRoom.getPlanTime());
         return vo;
@@ -130,6 +143,7 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         vo.setEndTime(now);
         vo.setTotalTime((int) totalTime);
         vo.setIsValid(isValid);
+        vo.setFocusMode(studyRoom.getFocusMode());
         return vo;
     }
 
@@ -158,10 +172,31 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         return listVO;
     }
 
+    @Override
+    public StudyRoomStatisticVO getStudyStatistic(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime weekStart = today.with(DayOfWeek.MONDAY).atStartOfDay();
+        LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();
+
+        Integer weekDuration = studyRoomMapper.sumTotalTimeByUserIdSince(userId, weekStart);
+        Integer monthDuration = studyRoomMapper.sumTotalTimeByUserIdSince(userId, monthStart);
+        Integer weekCount = studyRoomMapper.countValidByUserIdSince(userId, weekStart);
+        Integer monthCount = studyRoomMapper.countValidByUserIdSince(userId, monthStart);
+
+        StudyRoomStatisticVO vo = new StudyRoomStatisticVO();
+        vo.setWeekStudyDuration(weekDuration != null ? weekDuration : 0);
+        vo.setMonthStudyDuration(monthDuration != null ? monthDuration : 0);
+        vo.setWeekValidCount(weekCount != null ? weekCount : 0);
+        vo.setMonthValidCount(monthCount != null ? monthCount : 0);
+        return vo;
+    }
+
     private StudyRoomRecordVO toRecordVO(StudyRoom studyRoom) {
         StudyRoomRecordVO vo = new StudyRoomRecordVO();
         vo.setId(studyRoom.getId());
+        vo.setGoal(studyRoom.getGoal());
         vo.setMode(studyRoom.getMode());
+        vo.setFocusMode(studyRoom.getFocusMode());
         vo.setStartTime(studyRoom.getStartTime());
         vo.setEndTime(studyRoom.getEndTime());
         vo.setTotalTime(studyRoom.getTotalTime());
