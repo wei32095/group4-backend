@@ -13,6 +13,7 @@ import com.jycz.qingyun.mapper.ClassMapper;
 import com.jycz.qingyun.mapper.CourseMapper;
 import com.jycz.qingyun.mapper.CourseStudentMapper;
 import com.jycz.qingyun.service.ClassService;
+import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class ClassServiceImpl implements ClassService {
     private final CourseMapper courseMapper;
     private final CourseStudentMapper courseStudentMapper;
     private final ClassCheckMapper classCheckMapper;
-
+    private final NoticeService noticeService;  // ← 新增
     @Override
     @Transactional
     public ClassCreateVO createClass(ClassCreateRequest request, Long teacherId) {
@@ -60,6 +61,8 @@ public class ClassServiceImpl implements ClassService {
 
         classMapper.insert(clazz);
         log.info("课堂创建成功: classId={}, classTitle={}", clazz.getId(), clazz.getClassTitle());
+        // ✅ 发送课堂开始通知给所有学生
+        noticeService.sendClassStartNotice(request.getCourseId(), request.getClassTitle());
 
         return ClassCreateVO.builder()
                 .id(clazz.getId())

@@ -9,6 +9,7 @@ import com.jycz.qingyun.model.entity.*;
 import com.jycz.qingyun.model.vo.*;
 import com.jycz.qingyun.mapper.*;
 import com.jycz.qingyun.service.AssignmentService;
+import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
     private final CourseMapper courseMapper;  // ← 新增
-
+    private final NoticeService noticeService;  // ← 新增
     @Override
     @Transactional
     public AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId) {
@@ -75,7 +76,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         log.info("作业发布成功: assignmentId={}, teacherId={}", assignment.getId(), teacherId);
-
+        // ✅ 发送作业发布通知给所有学生
+        noticeService.sendAssignmentNotice(
+                request.getCourseId(),
+                request.getAssignmentTitle(),
+                request.getDeadline().toString()
+        );
         return AssignmentCreateVO.builder()
                 .assignmentId(assignment.getId())
                 .courseId(assignment.getCourseId())
@@ -291,7 +297,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         log.info("作业提交成功: assignmentId={}, studentId={}, autoScore={}",
                 request.getAssignmentId(), studentId, totalAutoScore);
-
+        // ✅ 发送提交作业通知给教师
+        Course course = courseMapper.selectById(assignment.getCourseId());
+        if (course != null) {
+            User student = userMapper.selectById(studentId);
+            String studentName = student != null ? student.getName() : "未知学生";
+            noticeService.sendSubmitNotice(course.getUserId(), studentName, assignment.getAssignmentTitle());
+        }
         return AssignmentSubmitVO.builder()
                 .assignmentId(request.getAssignmentId())
                 .status("SUBMITTED")
@@ -339,7 +351,8 @@ public class AssignmentServiceImpl implements AssignmentService {
                 request.getAssignmentId(), request.getStudentId(), totalScore);
 
         User student = userMapper.selectById(request.getStudentId());
-
+        // ✅ 发送作业批改通知给学生
+        noticeService.sendGradeNotice(request.getStudentId(), assignment.getAssignmentTitle(), totalScore);
         return AssignmentGradeVO.builder()
                 .assignmentId(request.getAssignmentId())
                 .studentId(request.getStudentId())
