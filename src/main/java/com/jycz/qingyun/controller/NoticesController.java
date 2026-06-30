@@ -5,10 +5,7 @@ import com.jycz.qingyun.model.vo.NoticeListVO;
 import com.jycz.qingyun.service.NoticeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/qingyun/notices")
@@ -25,5 +22,19 @@ public class NoticesController {
 
         Long userId = (Long) request.getAttribute("userId");
         return noticeService.getNotices(userId, page, size);
+    }
+
+    @PutMapping("/read/{noticeId}")
+    public ApiResult<Void> markRead(@PathVariable Long noticeId, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        noticeService.markRead(noticeId, userId);
+        return ApiResult.success();
+    }
+
+    @PutMapping("/read-all")
+    public ApiResult<Void> markAllRead(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        noticeService.markAllRead(userId);
+        return ApiResult.success();
     }
 }
