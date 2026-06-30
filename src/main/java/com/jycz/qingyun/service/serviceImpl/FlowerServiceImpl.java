@@ -3,14 +3,13 @@ package com.jycz.qingyun.service.serviceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jycz.qingyun.mapper.FlowerMapper;
-import com.jycz.qingyun.mapper.PointsRecordMapper;
 import com.jycz.qingyun.mapper.SeedMapper;
 import com.jycz.qingyun.model.entity.Flower;
-import com.jycz.qingyun.model.entity.PointsRecord;
 import com.jycz.qingyun.model.entity.Seed;
 import com.jycz.qingyun.model.vo.FlowerListVO;
 import com.jycz.qingyun.model.vo.FlowerVO;
 import com.jycz.qingyun.service.FlowerService;
+import com.jycz.qingyun.service.PointsRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +29,7 @@ public class FlowerServiceImpl implements FlowerService {
     private SeedMapper seedMapper;
 
     @Autowired
-    private PointsRecordMapper pointsRecordMapper;
+    private PointsRecordService pointsRecordService;
 
     @Override
     public FlowerListVO getMyFlowers(Long userId, int page, int size) {
@@ -113,22 +112,7 @@ public class FlowerServiceImpl implements FlowerService {
         }
 
         // 5. 扣积分
-        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
-        if (currentPoints == null) {
-            currentPoints = 0;
-        }
-        if (currentPoints < targetSeed.getPrice()) {
-            throw new RuntimeException("积分不足");
-        }
-
-        PointsRecord record = new PointsRecord();
-        record.setUserId(userId);
-        record.setChangeType(2);
-        record.setChangePoints(targetSeed.getPrice());
-        record.setLeftPoints(currentPoints - targetSeed.getPrice());
-        record.setSourceType(5);
-        record.setChangeTime(LocalDateTime.now());
-        pointsRecordMapper.insert(record);
+        pointsRecordService.deductPoints(userId, targetSeed.getPrice(), 5);
 
         // 6. 创建新花卉
         Flower newFlower = new Flower();

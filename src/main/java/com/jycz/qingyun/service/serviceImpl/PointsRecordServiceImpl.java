@@ -9,7 +9,9 @@ import com.jycz.qingyun.model.vo.PointsRecordVO;
 import com.jycz.qingyun.service.PointsRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,45 @@ public class PointsRecordServiceImpl implements PointsRecordService {
 
     @Autowired
     private PointsRecordMapper pointsRecordMapper;
+
+    @Override
+    @Transactional
+    public void addPoints(Long userId, int points, int sourceType) {
+        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
+        if (currentPoints == null) {
+            currentPoints = 0;
+        }
+
+        PointsRecord record = new PointsRecord();
+        record.setUserId(userId);
+        record.setChangeType(1);
+        record.setChangePoints(points);
+        record.setLeftPoints(currentPoints + points);
+        record.setSourceType(sourceType);
+        record.setChangeTime(LocalDateTime.now());
+        pointsRecordMapper.insert(record);
+    }
+
+    @Override
+    @Transactional
+    public void deductPoints(Long userId, int points, int sourceType) {
+        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
+        if (currentPoints == null) {
+            currentPoints = 0;
+        }
+        if (currentPoints < points) {
+            throw new RuntimeException("积分不足");
+        }
+
+        PointsRecord record = new PointsRecord();
+        record.setUserId(userId);
+        record.setChangeType(2);
+        record.setChangePoints(points);
+        record.setLeftPoints(currentPoints - points);
+        record.setSourceType(sourceType);
+        record.setChangeTime(LocalDateTime.now());
+        pointsRecordMapper.insert(record);
+    }
 
     @Override
     public PointsRecordListVO getRecords(Long userId, int page, int size) {
