@@ -246,19 +246,34 @@ CREATE TABLE `points_record` (
 
 
 -- =============================================
--- 15. 花卉表（flower）
+-- 14. 花卉品种配置表（seed）
+-- =============================================
+CREATE TABLE `seed` (
+                        `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '品种ID',
+                        `variety` VARCHAR(50) NOT NULL COMMENT '品种名称',
+                        `description` VARCHAR(200) DEFAULT NULL COMMENT '简介',
+                        `max_growth` INT NOT NULL COMMENT '最大生长值',
+                        `image` VARCHAR(500) DEFAULT NULL COMMENT '图片URL',
+                        `price` INT NOT NULL COMMENT '购买价格（积分）',
+                        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='花卉品种配置表';
+
+
+-- =============================================
+-- 15. 花卉实例表（flower）
 -- =============================================
 CREATE TABLE `flower` (
                           `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '花卉ID',
                           `user_id` BIGINT NOT NULL COMMENT '学生ID',
-                          `variety` VARCHAR(50) NOT NULL COMMENT '当前培育的花卉种类',
-                          `growth_growth_value` INT DEFAULT 0 COMMENT '当前生长值（0~100）',
+                          `seed_id` BIGINT NOT NULL COMMENT '品种ID',
+                          `growth_value` INT DEFAULT 0 COMMENT '当前生长值',
                           `stage` TINYINT DEFAULT 0 COMMENT '生长阶段：0-种子，1-发芽，2-幼苗，3-开花，4-成熟',
                           `is_unlocked` TINYINT DEFAULT 0 COMMENT '是否解锁图鉴：0-未解锁，1-已解锁',
                           `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                           `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                          INDEX idx_user_id (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='花卉表';
+                          INDEX idx_user_id (`user_id`),
+                          INDEX idx_seed_id (`seed_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='花卉实例表';
 
 
 -- =============================================
@@ -316,21 +331,6 @@ CREATE TABLE `course_student` (
                                   INDEX idx_course_id (`course_id`),
                                   INDEX idx_student_id (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课程-学生关联表';
-
--- =============================================
--- 20. 用户背包表（user_item）
--- =============================================
-CREATE TABLE `user_item` (
-                             `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
-                             `user_id` BIGINT NOT NULL COMMENT '用户ID',
-                             `item_id` BIGINT NOT NULL COMMENT '道具ID',
-                             `quantity` INT DEFAULT 0 COMMENT '拥有数量',
-                             `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                             `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                             UNIQUE KEY uk_user_item (`user_id`, `item_id`),
-                             INDEX idx_user_id (`user_id`),
-                             INDEX idx_item_id (`item_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户背包表';
 
 -- 加列
 ALTER TABLE notice ADD COLUMN notice_type TINYINT DEFAULT 0 COMMENT

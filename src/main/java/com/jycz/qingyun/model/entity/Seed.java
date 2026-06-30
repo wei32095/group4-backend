@@ -6,12 +6,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("user_item")
-public class UserItem {
+@TableName("seed")
+public class Seed {
     private Long id;
-    private Long userId;
-    private Long itemId;
-    private Integer quantity;
+    private String variety;
+    private String description;
+    private Integer maxGrowth;
+    private String image;
+    private Integer price;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }
