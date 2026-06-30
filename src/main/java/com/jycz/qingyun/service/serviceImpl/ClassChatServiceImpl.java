@@ -1,18 +1,16 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.jycz.qingyun.mapper.*;
 import com.jycz.qingyun.model.dto.ClassChatSendRequest;
 import com.jycz.qingyun.model.entity.Class;
 import com.jycz.qingyun.model.entity.ClassChat;
 import com.jycz.qingyun.model.entity.CourseStudent;
 import com.jycz.qingyun.model.entity.User;
 import com.jycz.qingyun.model.vo.ClassChatVO;
-import com.jycz.qingyun.mapper.ClassChatMapper;
-import com.jycz.qingyun.mapper.ClassMapper;
-import com.jycz.qingyun.mapper.CourseStudentMapper;
-import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.service.ClassChatService;
 import com.jycz.qingyun.utils.BusinessException;
+import com.jycz.qingyun.utils.SensitiveWordFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +31,8 @@ public class ClassChatServiceImpl implements ClassChatService {
     private final ClassMapper classMapper;
     private final CourseStudentMapper courseStudentMapper;
     private final UserMapper userMapper;
+    private final SensitiveWordMapper sensitiveWordMapper;      // ← 新增
+    private final SensitiveWordFilter sensitiveWordFilter;
 
     @Override
     @Transactional
@@ -63,8 +63,18 @@ public class ClassChatServiceImpl implements ClassChatService {
         if (request.getMessageType() != 1 && request.getMessageType() != 2) {
             throw new BusinessException(400, "消息类型只支持 1-文字 或 2-图片");
         }
+        // 5.敏感词过滤（仅对文字消息） ==========
+        if (request.getMessageType() == 1 && request.getContent() != null) {
+            // 查询所有敏感词
+            List<String> sensitiveWords = sensitiveWordMapper.selectAllWords();
+            // 检查是否包含敏感词
+            if (sensitiveWordFilter.containsSensitiveWord(request.getContent(), sensitiveWords)) {
+                throw new BusinessException(400, "消息包含敏感词，请修改后重试");
+            }
+        }
 
-        // 5. 创建消息
+
+        // 6. 创建消息
         ClassChat chat = new ClassChat();
         chat.setClassId(request.getClassId());
         chat.setUserId(userId);
@@ -75,7 +85,7 @@ public class ClassChatServiceImpl implements ClassChatService {
         classChatMapper.insert(chat);
         log.info("消息发送成功: classId={}, userId={}, type={}", request.getClassId(), userId, request.getMessageType());
 
-        // 6. 获取用户信息
+        // 7. 获取用户信息
         User user = userMapper.selectById(userId);
 
         return ClassChatVO.builder()
@@ -87,6 +97,8 @@ public class ClassChatServiceImpl implements ClassChatService {
                 .content(chat.getContent())
                 .sentTime(chat.getSentTime())
                 .build();
+
+
     }
 
     @Override
