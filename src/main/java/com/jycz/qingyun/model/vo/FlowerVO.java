@@ -10,6 +10,7 @@ public class FlowerVO {
     private String variety;
     private Integer stage;
     private Integer currentValue;
+    private Integer maxGrowth;
     private Integer isUnlocked;
     private LocalDateTime createdAt;
 }

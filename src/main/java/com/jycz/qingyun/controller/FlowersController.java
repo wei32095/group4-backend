@@ -2,14 +2,15 @@ package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.ExchangeRequest;
-import com.jycz.qingyun.model.dto.UseItemRequest;
+import com.jycz.qingyun.model.dto.PlantRequest;
 import com.jycz.qingyun.model.vo.FlowerListVO;
+import com.jycz.qingyun.model.vo.FlowerVO;
 import com.jycz.qingyun.model.vo.PointsRecordListVO;
+import com.jycz.qingyun.model.vo.SeedVO;
 import com.jycz.qingyun.model.vo.ShopItemVO;
-import com.jycz.qingyun.model.vo.UseItemVO;
-import com.jycz.qingyun.model.vo.UserItemVO;
 import com.jycz.qingyun.service.FlowerService;
 import com.jycz.qingyun.service.PointsRecordService;
+import com.jycz.qingyun.service.SeedService;
 import com.jycz.qingyun.service.ShopItemService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class FlowersController {
 
     @Autowired
     private FlowerService flowerService;
+
+    @Autowired
+    private SeedService seedService;
 
     @GetMapping("/records")
     public ApiResult<PointsRecordListVO> getPointsRecords(
@@ -52,16 +56,30 @@ public class FlowersController {
         return ApiResult.success(vo);
     }
 
-    @GetMapping("/shop")
-    public ApiResult<List<ShopItemVO>> getShop() {
-        List<ShopItemVO> list = shopItemService.getShopList();
+    @GetMapping("/seeds")
+    public ApiResult<List<SeedVO>> getSeeds() {
+        List<SeedVO> list = seedService.getSeedList();
         return ApiResult.success(list);
     }
 
-    @GetMapping("/bag")
-    public ApiResult<List<UserItemVO>> getBag(HttpServletRequest httpRequest) {
+    @PostMapping("/plant")
+    public ApiResult<FlowerVO> plant(
+            @RequestBody PlantRequest request,
+            HttpServletRequest httpRequest) {
+
         Long userId = (Long) httpRequest.getAttribute("userId");
-        List<UserItemVO> list = shopItemService.getBag(userId);
+
+        try {
+            FlowerVO vo = flowerService.plant(userId, request.getSeedId());
+            return ApiResult.success("播种成功", vo);
+        } catch (RuntimeException e) {
+            return ApiResult.error(400, e.getMessage());
+        }
+    }
+
+    @GetMapping("/shop")
+    public ApiResult<List<ShopItemVO>> getShop() {
+        List<ShopItemVO> list = shopItemService.getShopList();
         return ApiResult.success(list);
     }
 
@@ -75,21 +93,6 @@ public class FlowersController {
         try {
             shopItemService.exchangeItem(userId, request.getItemId());
             return ApiResult.success("兑换成功", true);
-        } catch (RuntimeException e) {
-            return ApiResult.error(400, e.getMessage());
-        }
-    }
-
-    @PostMapping("/use")
-    public ApiResult<UseItemVO> useItem(
-            @RequestBody UseItemRequest request,
-            HttpServletRequest httpRequest) {
-
-        Long userId = (Long) httpRequest.getAttribute("userId");
-
-        try {
-            UseItemVO vo = shopItemService.useItem(userId, request.getFlowerId(), request.getItemId());
-            return ApiResult.success("使用成功", vo);
         } catch (RuntimeException e) {
             return ApiResult.error(400, e.getMessage());
         }

@@ -141,15 +141,24 @@ INSERT INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `l
                                                                                                                                (5, 3, 1, 15, 45, 3, NOW()); -- 作业得分
 
 -- ----------------------------
--- 16. 花卉表 (flower)
+-- 16. 品种表 (seed)
 -- ----------------------------
-INSERT INTO `flower` (`id`, `user_id`, `variety`, `growth_growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
-                                                                                                                                 (1, 2, '玫瑰', 65, 3, 1, NOW(), NOW()),
-                                                                                                                                 (2, 2, '向日葵', 20, 1, 0, NOW(), NOW()),
-                                                                                                                                 (3, 3, '百合', 40, 2, 0, NOW(), NOW());
+INSERT INTO `seed` (`id`, `variety`, `description`, `max_growth`, `image`, `price`) VALUES
+(1, '向日葵', '向阳而生，充满活力的花朵', 100, 'https://example.com/seeds/sunflower.png', 0),
+(2, '玫瑰', '热情似火，经典浪漫之选', 120, 'https://example.com/seeds/rose.png', 50),
+(3, '仙人掌', '坚韧不拔，耐旱易养', 80, 'https://example.com/seeds/cactus.png', 30),
+(4, '樱花', '刹那芳华，绚烂而短暂', 150, 'https://example.com/seeds/cherry.png', 80);
 
 -- ----------------------------
--- 17. 商店道具表 (shop_item)
+-- 17. 花卉实例表 (flower)
+-- ----------------------------
+INSERT INTO `flower` (`id`, `user_id`, `seed_id`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
+(1, 2, 2, 65, 3, 1, NOW(), NOW()),    -- 用户2的玫瑰
+(2, 2, 1, 20, 1, 0, NOW(), NOW()),    -- 用户2的向日葵
+(3, 3, 2, 40, 2, 0, NOW(), NOW());    -- 用户3的玫瑰
+
+-- ----------------------------
+-- 18. 商店道具表 (shop_item)
 -- ----------------------------
 INSERT INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `growth_value`, `created_at`) VALUES
                                                                                                (1, '魔法肥料', 'https://example.com/fertilizer.png', 20, 15, NOW()),
@@ -188,11 +197,4 @@ INSERT INTO notice(user_id, notice_title, notice_content, notice_status, notice_
                                                                                                      (3, '上课提醒', '「数据库系统原理」本周五课程取消', 0, 1, '2026-06-27 10:00:00');
 
 
--- =============================================
--- 用户背包测试数据
--- =============================================
-INSERT INTO `user_item` (`user_id`, `item_id`, `quantity`) VALUES
-                                                               (1, 1, 3),   -- 用户1有3个浇水壶
-                                                               (1, 2, 1),   -- 用户1有1个肥料包
-                                                               (2, 1, 5);   -- 用户2有5个浇水壶
 
