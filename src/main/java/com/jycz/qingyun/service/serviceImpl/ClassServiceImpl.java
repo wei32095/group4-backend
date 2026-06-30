@@ -41,6 +41,11 @@ public class ClassServiceImpl implements ClassService {
             throw new BusinessException(404, "课程不存在");
         }
 
+        // 只有 active 状态的课程才能发起课堂
+        if (!"active".equals(course.getStatus())) {
+            throw new BusinessException(400, "课程当前不可用，无法发起课堂（课程状态：pending 或 archived）");
+        }
+
         if (!course.getUserId().equals(teacherId)) {
             throw new BusinessException(403, "您不是该课程的教师，无权创建课堂");
         }

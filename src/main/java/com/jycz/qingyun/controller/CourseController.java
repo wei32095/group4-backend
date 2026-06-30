@@ -2,6 +2,7 @@ package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.CourseCreateRequest;
+import com.jycz.qingyun.model.dto.CourseEndRequest;
 import com.jycz.qingyun.model.dto.CourseJoinRequest;
 import com.jycz.qingyun.model.vo.*;
 import com.jycz.qingyun.service.CourseService;
@@ -34,7 +35,7 @@ public class CourseController {
         }
 
         CourseCreateVO response = courseService.createCourse(request, userId);
-        return ApiResult.success("课程创建成功", response);
+        return ApiResult.success("已申请，请等待管理员审核", response);
     }
 
     @PostMapping("/join")
@@ -107,4 +108,19 @@ public class CourseController {
         return ApiResult.success(response);
     }
 
+    @PutMapping("/end")
+    public ApiResult<Void> endCourse(
+            @Valid @RequestBody CourseEndRequest request,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 2) {
+            return ApiResult.error(403, "仅教师可结束课程");
+        }
+
+        courseService.endCourse(request.getCourseId(), userId);
+        return ApiResult.success();
+    }
 }
