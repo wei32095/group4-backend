@@ -1,6 +1,7 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.jycz.qingyun.model.dto.CourseAuditRequest;
 import com.jycz.qingyun.model.dto.CourseCreateRequest;
 import com.jycz.qingyun.model.dto.CourseJoinRequest;
 import com.jycz.qingyun.model.entity.Course;
@@ -51,10 +52,11 @@ public class CourseServiceImpl implements CourseService {
         course.setCover(request.getCover());
         course.setStudentCount(0);
         course.setCourseCode(courseCode);
-        course.setStatus("active");
+        course.setStatus("pending");
+        course.setAuditStatus(0);
 
         courseMapper.insert(course);
-        log.info("课程创建成功: courseId={}, courseCode={}", course.getId(), courseCode);
+        log.info("课程创建成功: courseId={}, courseCode={}，, 等待管理员审核", course.getId(), courseCode);
 
         return CourseCreateVO.builder()
                 .id(course.getId())
@@ -79,6 +81,10 @@ public class CourseServiceImpl implements CourseService {
 
         if (course == null) {
             throw new BusinessException(404, "课程码不存在");
+        }
+
+        if (!"active".equals(course.getStatus())) {
+            throw new BusinessException(400, "未找到该课程");
         }
 
         LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
@@ -198,6 +204,7 @@ public class CourseServiceImpl implements CourseService {
         List<Course> courses = courseMapper.selectList(
                 new LambdaQueryWrapper<Course>()
                         .eq(Course::getUserId, teacherId)
+                        .eq(Course::getAuditStatus, 1)
                         .orderByDesc(Course::getCreatedAt)
                         .last("LIMIT " + offset + "," + pageSize)
         );
@@ -252,4 +259,71 @@ public class CourseServiceImpl implements CourseService {
         }
         return sb.toString();
     }
+    @Override
+    @Transactional
+    public CourseAuditVO auditCourse(CourseAuditRequest request, Long adminId) {
+        // 1. 查询课程
+        Course course = courseMapper.selectById(request.getCourseId());
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
+        }
+
+        // 2. 检查是否已审核
+        if (course.getAuditStatus() != null && course.getAuditStatus() != 0) {
+            throw new BusinessException(400, "该课程已审核，请勿重复操作");
+        }
+
+        // 3. 更新审核状态
+        course.setAuditStatus(request.getAuditStatus());
+        course.setAuditRemark(request.getAuditRemark());
+        course.setAuditTime(LocalDateTime.now());
+
+        // 4. 如果审核通过，设置课程状态为 active
+        if (request.getAuditStatus() == 1) {
+            course.setStatus("active");
+        } else {
+            // 审核驳回，课程状态设为 archived
+            course.setStatus("archived");
+        }
+
+        courseMapper.updateById(course);
+
+        log.info("课程审核完成: courseId={}, adminId={}, status={}",
+                course.getId(), adminId, request.getAuditStatus());
+
+        return CourseAuditVO.builder()
+                .courseId(course.getId())
+                .courseTitle(course.getCourseTitle())
+                .auditStatus(course.getAuditStatus())
+                .auditRemark(course.getAuditRemark())
+                .auditTime(course.getAuditTime())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void endCourse(Long courseId, Long teacherId) {
+        // 1. 查询课程
+        Course course = courseMapper.selectById(courseId);
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
+        }
+
+        // 2. 校验教师权限：只有该课程的创建者才能结束
+        if (!course.getUserId().equals(teacherId)) {
+            throw new BusinessException(403, "您不是该课程的教师");
+        }
+
+        // 3. 校验课程状态：已结束的不能重复结束
+        if ("archived".equals(course.getStatus())) {
+            throw new BusinessException(400, "课程已结束");
+        }
+
+        // 4. 结束课程：状态改为 archived
+        course.setStatus("archived");
+        courseMapper.updateById(course);
+
+        log.info("课程已结束: courseId={}, teacherId={}", courseId, teacherId);
+    }
+
 }
