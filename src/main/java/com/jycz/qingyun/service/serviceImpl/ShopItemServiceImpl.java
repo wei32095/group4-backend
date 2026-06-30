@@ -2,14 +2,13 @@ package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jycz.qingyun.mapper.FlowerMapper;
-import com.jycz.qingyun.mapper.PointsRecordMapper;
 import com.jycz.qingyun.mapper.SeedMapper;
 import com.jycz.qingyun.mapper.ShopItemMapper;
 import com.jycz.qingyun.model.entity.Flower;
-import com.jycz.qingyun.model.entity.PointsRecord;
 import com.jycz.qingyun.model.entity.Seed;
 import com.jycz.qingyun.model.entity.ShopItem;
 import com.jycz.qingyun.model.vo.ShopItemVO;
+import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.service.ShopItemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,7 +25,7 @@ public class ShopItemServiceImpl implements ShopItemService {
     private ShopItemMapper shopItemMapper;
 
     @Autowired
-    private PointsRecordMapper pointsRecordMapper;
+    private PointsRecordService pointsRecordService;
 
     @Autowired
     private FlowerMapper flowerMapper;
@@ -49,26 +48,8 @@ public class ShopItemServiceImpl implements ShopItemService {
             throw new RuntimeException("道具不存在");
         }
 
-        // 2. 查询当前积分
-        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
-        if (currentPoints == null) {
-            currentPoints = 0;
-        }
-
-        // 3. 校验积分是否足够
-        if (currentPoints < item.getPrice()) {
-            throw new RuntimeException("积分不足");
-        }
-
-        // 4. 扣除积分并记录流水
-        PointsRecord record = new PointsRecord();
-        record.setUserId(userId);
-        record.setChangeType(2);
-        record.setChangePoints(item.getPrice());
-        record.setLeftPoints(currentPoints - item.getPrice());
-        record.setSourceType(5);
-        record.setChangeTime(LocalDateTime.now());
-        pointsRecordMapper.insert(record);
+        // 2. 扣积分
+        pointsRecordService.deductPoints(userId, item.getPrice(), 5);
 
         // 5. 查找用户当前正在培育的花卉（最新一株）
         LambdaQueryWrapper<Flower> wrapper = new LambdaQueryWrapper<Flower>()
