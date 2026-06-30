@@ -1,12 +1,6 @@
 package com.jycz.qingyun.service;
 
-import com.jycz.qingyun.model.dto.ApiResult;
-import com.jycz.qingyun.model.dto.BindPhoneRequest;
-import com.jycz.qingyun.model.dto.InfoUpdateRequest;
-import com.jycz.qingyun.model.dto.LoginRequest;
-import com.jycz.qingyun.model.dto.MpLoginRequest;
-import com.jycz.qingyun.model.dto.PasswordUpdateRequest;
-import com.jycz.qingyun.model.dto.RegisterRequest;
+import com.jycz.qingyun.model.dto.*;
 import com.jycz.qingyun.model.vo.LoginVO;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
 
@@ -46,4 +40,5 @@ public interface UserService {
      * 修改密码
      */
     ApiResult<Boolean> updatePassword(Long userId, PasswordUpdateRequest request);
+    void banUser(BanUserRequest request, Long adminId);
 }
