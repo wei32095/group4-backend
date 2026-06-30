@@ -7,6 +7,13 @@ spring:
     username: root
     password: 你的数据库密码
 
+  # redis配置
+  data:
+        redis:
+          host: localhost
+          port: 6379
+          timeout: 3000ms
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

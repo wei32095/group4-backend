@@ -3,6 +3,7 @@ package com.jycz.qingyun.controller;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.LoginRequest;
 import com.jycz.qingyun.model.dto.RegisterRequest;
+import com.jycz.qingyun.model.dto.VerifyCodeLoginRequest;
 import com.jycz.qingyun.service.UserService;
 import com.jycz.qingyun.model.vo.LoginVO;
 import jakarta.validation.Valid;
@@ -22,6 +23,11 @@ public class LoginController {
     @PostMapping("/login")
     public ApiResult<LoginVO> login(@Valid @RequestBody LoginRequest request) {
         return userService.login(request);
+    }
+
+    @PostMapping("/login/verify-code")
+    public ApiResult<LoginVO> loginByVerifyCode(@Valid @RequestBody VerifyCodeLoginRequest request) {
+        return userService.loginByVerifyCode(request);
     }
 
     @PostMapping("/register")

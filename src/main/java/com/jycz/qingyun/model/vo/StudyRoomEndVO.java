@@ -10,4 +10,5 @@ public class StudyRoomEndVO {
     private LocalDateTime endTime;
     private Integer totalTime;
     private Integer isValid;
+    private Integer focusMode;
 }
