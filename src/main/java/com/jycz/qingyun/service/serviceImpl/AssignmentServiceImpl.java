@@ -36,6 +36,21 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     @Transactional
     public AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId) {
+        Course course = courseMapper.selectById(request.getCourseId());
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
+        }
+
+        // 只有 active 状态的课程才能发布作业
+        if (!"active".equals(course.getStatus())) {
+            throw new BusinessException(400, "课程当前不可用，无法发布作业（课程状态：pending 或 archived）");
+        }
+
+        // 校验教师权限
+        if (!course.getUserId().equals(teacherId)) {
+            throw new BusinessException(403, "您不是该课程的教师，无权发布作业");
+        }
+
         Assignment assignment = new Assignment();
         assignment.setCourseId(request.getCourseId());
         assignment.setAssignmentTitle(request.getAssignmentTitle());
