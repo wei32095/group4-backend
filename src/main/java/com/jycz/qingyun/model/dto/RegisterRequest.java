@@ -18,6 +18,10 @@ public class RegisterRequest {
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).{6,50}$", message = "密码必须包含字母和数字（6-50位）")
     private String password;
 
+    @NotBlank(message = "验证码不能为空")
+    @Pattern(regexp = "^\\d{6}$", message = "验证码格式不正确")
+    private String code;
+
     @NotBlank(message = "姓名不能为空")
     @Size(max = 50, message = "姓名最长不超过50字")
     private String name;

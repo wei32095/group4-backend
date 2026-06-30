@@ -10,6 +10,8 @@ import com.jycz.qingyun.model.dto.LoginRequest;
 import com.jycz.qingyun.model.dto.MpLoginRequest;
 import com.jycz.qingyun.model.dto.PasswordUpdateRequest;
 import com.jycz.qingyun.model.dto.RegisterRequest;
+import com.jycz.qingyun.model.dto.VerifyCodeLoginRequest;
+import com.jycz.qingyun.service.VerifyCodeService;
 import com.jycz.qingyun.utils.BusinessException;
 import com.jycz.qingyun.utils.JwtUtil;
 import com.jycz.qingyun.utils.WxUtil;
@@ -43,6 +45,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private WxUtil wxUtil;
+
+    @Autowired
+    private VerifyCodeService verifyCodeService;
 
     @Override
     public ApiResult<LoginVO> login(LoginRequest request) {
@@ -103,15 +108,48 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public ApiResult<LoginVO> loginByVerifyCode(VerifyCodeLoginRequest request) {
+        // 1. 校验验证码
+        boolean valid = verifyCodeService.verifyCode(request.getPhone(), request.getCode());
+        if (!valid) {
+            return ApiResult.error(400, "验证码错误或已过期");
+        }
+
+        // 2. 查用户
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getPhone, request.getPhone());
+        User user = userMapper.selectOne(wrapper);
+
+        if (user == null) {
+            return ApiResult.error(401, "账号不存在");
+        }
+
+        // 3. 校验用户状态
+        if (user.getStatus() == 0) {
+            return ApiResult.error(403, "账号已被禁用");
+        }
+
+        // 4. 生成 JWT
+        String token = jwtUtil.generateToken(user.getId(), user.getRole());
+        return ApiResult.success(buildLoginVO(token, user));
+    }
+
+    @Override
     public ApiResult<LoginVO> register(RegisterRequest request) {
-        // 1. 校验手机号是否已被注册
+        // 1. 校验验证码
+        boolean valid = verifyCodeService.verifyCode(request.getPhone(), request.getCode());
+        if (!valid) {
+            return ApiResult.error(400, "验证码错误或已过期");
+        }
+
+        // 2. 校验手机号是否已被注册
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getPhone, request.getPhone());
         if (userMapper.selectOne(wrapper) != null) {
             return ApiResult.error(409, "该手机号已被注册");
         }
 
-        // 2. 创建用户
+        // 3. 创建用户
         User user = new User();
         user.setPhone(request.getPhone());
         user.setPassword(request.getPassword());
