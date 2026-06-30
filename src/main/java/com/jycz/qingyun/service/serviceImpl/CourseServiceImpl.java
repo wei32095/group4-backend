@@ -326,4 +326,90 @@ public class CourseServiceImpl implements CourseService {
         log.info("课程已结束: courseId={}, teacherId={}", courseId, teacherId);
     }
 
+    @Override
+    public List<AdminUserCourseVO> getAdminUserCourses(Long userId, Integer pageNum, Integer pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+
+        // 1. 查询用户信息
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        List<AdminUserCourseVO> allCourses = new ArrayList<>();
+
+        if (user.getRole() == 1) {
+            // 学生：查询已加入的课程
+            List<CourseStudent> courseStudents = courseStudentMapper.selectList(
+                    new LambdaQueryWrapper<CourseStudent>()
+                            .eq(CourseStudent::getUserId, userId)
+            );
+
+            if (!courseStudents.isEmpty()) {
+                List<Long> courseIds = courseStudents.stream()
+                        .map(CourseStudent::getCourseId)
+                        .collect(Collectors.toList());
+
+                List<Course> courses = courseMapper.selectBatchIds(courseIds);
+                Map<Long, Course> courseMap = courses.stream()
+                        .collect(Collectors.toMap(Course::getId, c -> c));
+                Map<Long, LocalDateTime> joinedTimeMap = courseStudents.stream()
+                        .collect(Collectors.toMap(CourseStudent::getCourseId, CourseStudent::getJoinedAt));
+
+                List<Long> teacherIds = courses.stream().map(Course::getUserId).collect(Collectors.toList());
+                Map<Long, User> teacherMap = userMapper.selectBatchIds(teacherIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+
+                for (CourseStudent cs : courseStudents) {
+                    Course course = courseMap.get(cs.getCourseId());
+                    if (course == null) continue;
+                    User teacher = teacherMap.get(course.getUserId());
+
+                    allCourses.add(AdminUserCourseVO.builder()
+                            .courseId(course.getId())
+                            .courseTitle(course.getCourseTitle())
+                            .teacherName(teacher != null ? teacher.getName() : "未知老师")
+                            .studentCount(course.getStudentCount())
+                            .courseCode(course.getCourseCode())
+                            .status(course.getStatus())
+                            .joinedAt(joinedTimeMap.get(course.getId()))
+                            .relationType("joined")
+                            .build());
+                }
+            }
+
+        } else if (user.getRole() == 2) {
+            // 教师：查询创建的课程
+            List<Course> courses = courseMapper.selectList(
+                    new LambdaQueryWrapper<Course>()
+                            .eq(Course::getUserId, userId)
+            );
+
+            for (Course course : courses) {
+                allCourses.add(AdminUserCourseVO.builder()
+                        .courseId(course.getId())
+                        .courseTitle(course.getCourseTitle())
+                        .teacherName(user.getName())
+                        .studentCount(course.getStudentCount())
+                        .courseCode(course.getCourseCode())
+                        .status(course.getStatus())
+                        .joinedAt(null)
+                        .relationType("created")
+                        .build());
+            }
+        } else {
+            throw new BusinessException(400, "该用户角色暂不支持查看课程");
+        }
+
+        // 手动分页
+        int total = allCourses.size();
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, total);
+
+        if (start >= total) {
+            return new ArrayList<>();
+        }
+
+        return allCourses.subList(start, end);
+    }
 }
