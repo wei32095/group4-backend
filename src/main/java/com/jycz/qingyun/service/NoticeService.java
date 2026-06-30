@@ -20,4 +20,44 @@ public interface NoticeService {
 
     /** 标记当前用户所有通知为已读 */
     void markAllRead(Long userId);
+
+    /**
+     * 发送加入课程通知（给学生）
+     */
+    void sendJoinCourseNotice(Long userId, String courseTitle);
+
+    /**
+     * 发送课堂开始通知（给课程所有学生）
+     */
+    void sendClassStartNotice(Long courseId, String className);
+
+    /**
+     * 发送作业发布通知（给课程所有学生）
+     */
+    void sendAssignmentNotice(Long courseId, String assignmentTitle, String deadline);
+
+    /**
+     * 发送作业批改通知（给学生）
+     */
+    void sendGradeNotice(Long userId, String assignmentTitle, Integer score);
+
+    /**
+     * 发送课程结束通知（给课程所有学生）
+     */
+    void sendCourseEndNotice(Long courseId, String courseTitle);
+
+    /**
+     * 发送学生发布问题通知（给教师）
+     */
+    void sendProblemNotice(Long teacherId, String studentName, String problemTitle);
+
+    /**
+     * 发送学生提交作业通知（给教师）
+     */
+    void sendSubmitNotice(Long teacherId, String studentName, String assignmentTitle);
+
+    /**
+     * 发送课程审核通过通知（给教师）
+     */
+    void sendAuditSuccessNotice(Long teacherId, String courseTitle);
 }
