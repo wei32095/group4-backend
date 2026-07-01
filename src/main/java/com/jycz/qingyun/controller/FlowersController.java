@@ -36,12 +36,10 @@ public class FlowersController {
 
     @GetMapping("/records")
     public ApiResult<PointsRecordListVO> getPointsRecords(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
-        PointsRecordListVO vo = pointsRecordService.getRecords(userId, page, size);
+        PointsRecordListVO vo = pointsRecordService.getRecords(userId);
         return ApiResult.success(vo);
     }
 

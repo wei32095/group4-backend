@@ -17,7 +17,7 @@ public class Seed {
     private String stage1Image;
     private String stage2Image;
     private String stage3Image;
-    private String stage4Image;
     private Integer price;
+    private Integer isDeleted;
     private LocalDateTime createdAt;
 }
