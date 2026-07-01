@@ -21,4 +21,25 @@ public interface PointsRecordService {
      * @throws RuntimeException 积分不足时抛出
      */
     void deductPoints(Long userId, int points, int sourceType);
+    /**
+     * 签到积分处理
+     * @param userId 用户ID
+     * @param checkStatus 签到状态：1-正常，2-迟到，3-缺勤
+     */
+    void handleCheckinPoints(Long userId, Integer checkStatus);
+
+    /**
+     * 投票正确加分
+     */
+    void handleVoteCorrectPoints(Long userId);
+
+    /**
+     * 作业批改积分（成绩 ÷ 5，保留整数）
+     */
+    void handleAssignmentGradePoints(Long userId, Integer score);
+
+    /**
+     * 问题被老师回复加分
+     */
+    void handleProblemRepliedPoints(Long userId);
 }
