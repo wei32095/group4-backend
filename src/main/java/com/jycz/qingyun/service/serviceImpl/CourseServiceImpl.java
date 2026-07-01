@@ -201,6 +201,7 @@ public class CourseServiceImpl implements CourseService {
                     .cover(course.getCover())
                     .teacherName(teacher != null ? teacher.getName() : "未知老师")
                     .studentCount(course.getStudentCount())
+                    .status(course.getStatus())
                     .joinedAt(joinedTimeMap.get(course.getId()))
                     .build();
         }).collect(Collectors.toList());
