@@ -252,9 +252,11 @@ CREATE TABLE `seed` (
                         `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '品种ID',
                         `variety` VARCHAR(50) NOT NULL COMMENT '品种名称',
                         `description` VARCHAR(200) DEFAULT NULL COMMENT '简介',
-                        `max_growth` INT NOT NULL COMMENT '最大生长值',
                         `image` VARCHAR(500) DEFAULT NULL COMMENT '图片URL',
                         `price` INT NOT NULL COMMENT '购买价格（积分）',
+                        `sunlight_max` INT DEFAULT '100' COMMENT '阳光满值',
+                        `water_max` INT DEFAULT '100' COMMENT '水分满值',
+                        `nutrient_max` INT DEFAULT '100' COMMENT '养份满值',
                         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='花卉品种配置表';
 

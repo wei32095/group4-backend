@@ -298,13 +298,15 @@ CREATE TABLE `seed` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '品种ID',
     `variety` VARCHAR(50) NOT NULL COMMENT '品种名称',
     `description` VARCHAR(200) DEFAULT NULL COMMENT '简介',
-    `max_growth` INT NOT NULL COMMENT '最大生长值',
     `image` VARCHAR(500) DEFAULT NULL COMMENT '图片URL',
     `stage0_image` VARCHAR(500) DEFAULT NULL COMMENT '种子阶段图片',
     `stage1_image` VARCHAR(500) DEFAULT NULL COMMENT '发芽阶段图片',
-    `stage2_image` VARCHAR(500) DEFAULT NULL COMMENT '幼苗阶段图片',
+    `stage2_image` VARCHAR(500) DEFAULT NULL COMMENT '长叶阶段图片',
     `stage3_image` VARCHAR(500) DEFAULT NULL COMMENT '开花阶段图片',
     `price` INT NOT NULL COMMENT '购买价格（积分）',
+    `sunlight_max` INT DEFAULT '100' COMMENT '阳光满值',
+    `water_max` INT DEFAULT '100' COMMENT '水分满值',
+    `nutrient_max` INT DEFAULT '100' COMMENT '养份满值',
     `is_deleted` TINYINT DEFAULT '0' COMMENT '逻辑删除：0-未删除，1-已删除',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`)
@@ -318,8 +320,11 @@ CREATE TABLE `flower` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '花卉ID',
     `user_id` BIGINT NOT NULL COMMENT '学生ID',
     `seed_id` BIGINT NOT NULL COMMENT '品种ID',
-    `growth_value` INT DEFAULT '0' COMMENT '当前生长值',
-    `stage` TINYINT DEFAULT '0' COMMENT '生长阶段：0-种子，1-发芽，2-幼苗，3-开花',
+    `sunlight` INT DEFAULT '0' COMMENT '阳光值',
+    `water` INT DEFAULT '0' COMMENT '水分值',
+    `nutrient` INT DEFAULT '0' COMMENT '养份值',
+    `growth_value` INT DEFAULT '0' COMMENT '当前生长值（冗余，由三维计算）',
+    `stage` TINYINT DEFAULT '0' COMMENT '生长阶段：0-种子，1-发芽，2-长叶，3-开花',
     `is_unlocked` TINYINT DEFAULT '0' COMMENT '是否解锁图鉴：0-未解锁，1-已解锁',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -337,7 +342,8 @@ CREATE TABLE `shop_item` (
     `item_name` VARCHAR(50) NOT NULL COMMENT '道具名称',
     `icon` VARCHAR(500) DEFAULT NULL COMMENT '道具图标url',
     `price` INT NOT NULL COMMENT '所需积分',
-    `growth_value` INT DEFAULT '10' COMMENT '使用可提升生长值',
+    `attribute_type` TINYINT DEFAULT '1' COMMENT '属性类型：1-阳光 2-水分 3-养份',
+    `boost_value` INT DEFAULT '10' COMMENT '提升值',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_price` (`price`)
@@ -527,23 +533,23 @@ INSERT INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `l
 (5, 3, 1, 15, 45, 3, NOW());
 
 -- 16. 花卉品种
-INSERT INTO `seed` (`id`, `variety`, `description`, `max_growth`, `image`, `stage0_image`, `stage1_image`, `stage2_image`, `stage3_image`, `price`) VALUES
-(1, '向日葵', '向阳而生，充满活力的花朵', 100, 'https://example.com/seeds/sunflower.png', 'https://example.com/plants/sunflower_0.png', 'https://example.com/plants/sunflower_1.png', 'https://example.com/plants/sunflower_2.png', 'https://example.com/plants/sunflower_3.png', 0),
-(2, '玫瑰', '热情似火，经典浪漫之选', 120, 'https://example.com/seeds/rose.png', 'https://example.com/plants/rose_0.png', 'https://example.com/plants/rose_1.png', 'https://example.com/plants/rose_2.png', 'https://example.com/plants/rose_3.png', 50),
-(3, '仙人掌', '坚韧不拔，耐旱易养', 80, 'https://example.com/seeds/cactus.png', 'https://example.com/plants/cactus_0.png', 'https://example.com/plants/cactus_1.png', 'https://example.com/plants/cactus_2.png', 'https://example.com/plants/cactus_3.png', 30),
-(4, '樱花', '刹那芳华，绚烂而短暂', 150, 'https://example.com/seeds/cherry.png', 'https://example.com/plants/cherry_0.png', 'https://example.com/plants/cherry_1.png', 'https://example.com/plants/cherry_2.png', 'https://example.com/plants/cherry_3.png', 80);
+INSERT INTO `seed` (`id`, `variety`, `description`, `image`, `stage0_image`, `stage1_image`, `stage2_image`, `stage3_image`, `price`, `sunlight_max`, `water_max`, `nutrient_max`) VALUES
+(1, '向日葵', '向阳而生，充满活力的花朵', 'https://example.com/seeds/sunflower.png', 'https://example.com/plants/sunflower_0.png', 'https://example.com/plants/sunflower_1.png', 'https://example.com/plants/sunflower_2.png', 'https://example.com/plants/sunflower_3.png', 0, 100, 80, 60),
+(2, '玫瑰', '热情似火，经典浪漫之选', 'https://example.com/seeds/rose.png', 'https://example.com/plants/rose_0.png', 'https://example.com/plants/rose_1.png', 'https://example.com/plants/rose_2.png', 'https://example.com/plants/rose_3.png', 50, 90, 100, 70),
+(3, '仙人掌', '坚韧不拔，耐旱易养', 'https://example.com/seeds/cactus.png', 'https://example.com/plants/cactus_0.png', 'https://example.com/plants/cactus_1.png', 'https://example.com/plants/cactus_2.png', 'https://example.com/plants/cactus_3.png', 30, 60, 40, 50),
+(4, '樱花', '刹那芳华，绚烂而短暂', 'https://example.com/seeds/cherry.png', 'https://example.com/plants/cherry_0.png', 'https://example.com/plants/cherry_1.png', 'https://example.com/plants/cherry_2.png', 'https://example.com/plants/cherry_3.png', 80, 80, 90, 100);
 
 -- 17. 花卉实例
-INSERT INTO `flower` (`id`, `user_id`, `seed_id`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
-(1, 2, 2, 65, 3, 1, NOW(), NOW()),
-(2, 2, 1, 20, 1, 0, NOW(), NOW()),
-(3, 3, 2, 40, 2, 0, NOW(), NOW());
+INSERT INTO `flower` (`id`, `user_id`, `seed_id`, `sunlight`, `water`, `nutrient`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
+(1, 2, 2, 77, 85, 60, 222, 3, 1, NOW(), NOW()),
+(2, 2, 1, 35, 28, 21, 84, 1, 0, NOW(), NOW()),
+(3, 3, 2, 56, 62, 43, 161, 2, 0, NOW(), NOW());
 
 -- 18. 商店道具
-INSERT INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `growth_value`, `created_at`) VALUES
-(1, '魔法肥料', 'https://example.com/fertilizer.png', 20, 15, NOW()),
-(2, '加速药水', 'https://example.com/potion.png', 15, 10, NOW()),
-(3, '稀有种子', 'https://example.com/seed.png', 50, 30, NOW());
+INSERT INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `attribute_type`, `boost_value`, `created_at`) VALUES
+(1, '有机肥料', 'https://example.com/fertilizer.png', 5, 2, 10, NOW()),
+(2, '纯净水', 'https://example.com/potion.png', 10, 3, 10, NOW()),
+(3, '阳光精华', 'https://example.com/seed.png', 8, 1, 10, NOW());
 
 -- 19. 系统通知
 INSERT INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice_status`, `notice_type`, `push_time`) VALUES
