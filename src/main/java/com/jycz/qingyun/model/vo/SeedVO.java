@@ -7,7 +7,9 @@ public class SeedVO {
     private Long id;
     private String variety;
     private String description;
-    private Integer maxGrowth;
+    private Integer sunlightMax;
+    private Integer waterMax;
+    private Integer nutrientMax;
     private String image;
     private String stage0Image;
     private String stage1Image;

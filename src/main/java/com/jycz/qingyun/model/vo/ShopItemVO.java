@@ -8,5 +8,6 @@ public class ShopItemVO {
     private String itemName;
     private String icon;
     private Integer price;
-    private Integer growthValue;
+    private Integer attributeType;
+    private Integer boostValue;
 }

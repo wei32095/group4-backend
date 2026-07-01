@@ -12,7 +12,11 @@ public class UpdateSeedRequest {
 
     private String description;
 
-    private Integer maxGrowth;
+    private Integer sunlightMax;
+
+    private Integer waterMax;
+
+    private Integer nutrientMax;
 
     private String image;
 

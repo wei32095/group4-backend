@@ -12,8 +12,11 @@ public class AddSeedRequest {
 
     private String description;
 
-    @NotNull(message = "最大生长值不能为空")
-    private Integer maxGrowth;
+    private Integer sunlightMax;
+
+    private Integer waterMax;
+
+    private Integer nutrientMax;
 
     private String image;
 

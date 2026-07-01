@@ -7,10 +7,13 @@ import java.time.LocalDateTime;
 @Data
 public class FlowerVO {
     private Long id;
+    private Long seedId;
     private String variety;
+    private Integer sunlight;
+    private Integer water;
+    private Integer nutrient;
+    private Integer growthPercent;
     private Integer stage;
-    private Integer currentValue;
-    private Integer maxGrowth;
     private Integer isUnlocked;
     private LocalDateTime createdAt;
 }
