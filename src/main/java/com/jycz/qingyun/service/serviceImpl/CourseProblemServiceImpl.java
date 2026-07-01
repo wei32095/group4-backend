@@ -9,6 +9,7 @@ import com.jycz.qingyun.model.vo.ProblemDetailVO;
 import com.jycz.qingyun.mapper.*;
 import com.jycz.qingyun.service.CourseProblemService;
 import com.jycz.qingyun.service.NoticeService;
+import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     private final CourseStudentMapper courseStudentMapper;
     private final UserMapper userMapper;
     private final NoticeService noticeService;  // ← 新增
+    private final PointsRecordService pointsRecordService;  // ← 新增
     // ========== 1. 发布问题 ==========
     @Override
     @Transactional
@@ -228,7 +230,10 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             throw new BusinessException(404, "问题不存在");
         }
 
-        // 2. 校验用户是否已加入该课程
+        // 2. 查询课程信息
+        Course course = courseMapper.selectById(problem.getCourseId());
+
+        // 3. 校验用户是否已加入该课程
         LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
         csWrapper.eq(CourseStudent::getCourseId, problem.getCourseId())
                 .eq(CourseStudent::getUserId, userId);
@@ -236,24 +241,24 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             throw new BusinessException(403, "您未加入该课程，无法回复");
         }
 
-        // 3. 创建回复
+        // 4. 创建回复
         CourseProblemReply reply = new CourseProblemReply();
         reply.setProblemId(request.getProblemId());
         reply.setUserId(userId);
         reply.setContent(request.getContent());
         courseProblemReplyMapper.insert(reply);
 
-        // 4. 更新问题回复数
+        // 5. 更新问题回复数
         problem.setReplyCount(problem.getReplyCount() + 1);
         courseProblemMapper.updateById(problem);
 
         log.info("回复成功: replyId={}, problemId={}, userId={}",
                 reply.getId(), request.getProblemId(), userId);
 
-        // 5. ✅ 获取回复者信息（必须有）
+        // 6. 获取回复者信息
         User replier = userMapper.selectById(userId);
 
-        // 6. 发送问题被回复通知给问题发布者（自己回复自己不通知）
+        // 7. 发送问题被回复通知给问题发布者（自己回复自己不通知）
         if (!problem.getUserId().equals(userId) && replier != null) {
             noticeService.sendProblemRepliedNotice(
                     problem.getUserId(),
@@ -262,7 +267,14 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             );
         }
 
-        // 7. 获取问题发布者信息
+        // 8. ========== 新增：教师回复问题加分 ==========
+        if (course != null && course.getUserId().equals(userId)) {
+            pointsRecordService.handleProblemRepliedPoints(problem.getUserId());
+            log.info("教师回复问题，给问题发布者加分: problemId={}, authorId={}", problem.getId(), problem.getUserId());
+        }
+        // ========== 新增结束 ==========
+
+        // 9. 获取问题发布者信息
         User author = userMapper.selectById(problem.getUserId());
 
         return CourseProblemVO.builder()

@@ -13,6 +13,7 @@ import com.jycz.qingyun.mapper.ClassMapper;
 import com.jycz.qingyun.mapper.CourseStudentMapper;
 import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.service.CheckinService;
+import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,7 @@ public class CheckinServiceImpl implements CheckinService {
     private final ClassMapper classMapper;
     private final CourseStudentMapper courseStudentMapper;
     private final UserMapper userMapper;
-
+    private final PointsRecordService pointsRecordService;  // ← 新增
     @Override
     @Transactional
     public CheckinSubmitVO submitCheckin(CheckinSubmitRequest request, Long studentId) {
@@ -90,6 +91,7 @@ public class CheckinServiceImpl implements CheckinService {
         classCheckMapper.insert(classCheck);
 
         log.info("学生签到成功: classId={}, studentId={}, status={}", request.getClassId(), studentId, checkStatus);
+        pointsRecordService.handleCheckinPoints(studentId, checkStatus);
 
         return CheckinSubmitVO.builder()
                 .classId(clazz.getId())
