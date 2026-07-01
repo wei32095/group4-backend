@@ -15,4 +15,5 @@ public class CourseListStudentVO {
     private String teacherName;
     private Integer studentCount;
     private LocalDateTime joinedAt;
+    private String status;           // ← 新增
 }

@@ -16,4 +16,5 @@ public class CourseListTeacherVO {
     private String courseCode;
     private String status;
     private LocalDateTime createdAt;
+    private Integer auditStatus;
 }

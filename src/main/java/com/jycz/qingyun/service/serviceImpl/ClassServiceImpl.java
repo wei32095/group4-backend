@@ -13,7 +13,6 @@ import com.jycz.qingyun.mapper.ClassMapper;
 import com.jycz.qingyun.mapper.CourseMapper;
 import com.jycz.qingyun.mapper.CourseStudentMapper;
 import com.jycz.qingyun.service.ClassService;
-import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,28 +22,23 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import java.time.temporal.ChronoUnit;
 @Slf4j
 @Service
-@RequiredArgsConstructor//
+@RequiredArgsConstructor
 public class ClassServiceImpl implements ClassService {
 
     private final ClassMapper classMapper;
     private final CourseMapper courseMapper;
     private final CourseStudentMapper courseStudentMapper;
     private final ClassCheckMapper classCheckMapper;
-    private final NoticeService noticeService;  // ← 新增
+
     @Override
     @Transactional
     public ClassCreateVO createClass(ClassCreateRequest request, Long teacherId) {
         Course course = courseMapper.selectById(request.getCourseId());
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
-        }
-
-        // 只有 active 状态的课程才能发起课堂
-        if (!"active".equals(course.getStatus())) {
-            throw new BusinessException(400, "课程当前不可用，无法发起课堂（课程状态：pending 或 archived）");
         }
 
         if (!course.getUserId().equals(teacherId)) {
@@ -55,29 +49,23 @@ public class ClassServiceImpl implements ClassService {
         clazz.setCourseId(request.getCourseId());
         clazz.setUserId(teacherId);
         clazz.setClassTitle(request.getClassTitle());
-        clazz.setFileUrl(request.getFileUrl());
         clazz.setStatus("active");
-        clazz.setCreateTime(LocalDateTime.now());  // ← 新增：设置创建时间
+        clazz.setCreateTime(LocalDateTime.now());
+        clazz.setEndTime(null);
 
         classMapper.insert(clazz);
         log.info("课堂创建成功: classId={}, classTitle={}", clazz.getId(), clazz.getClassTitle());
-        // ✅ 发送课堂开始通知给所有学生
-        noticeService.sendClassStartNotice(request.getCourseId(), request.getClassTitle());
 
         return ClassCreateVO.builder()
                 .id(clazz.getId())
                 .courseId(clazz.getCourseId())
                 .userId(clazz.getUserId())
                 .classTitle(clazz.getClassTitle())
-                .fileUrl(clazz.getFileUrl())
                 .status(clazz.getStatus())
-                .createTime(clazz.getCreateTime())  // ← 新增：返回创建时间
+                .createTime(clazz.getCreateTime())
                 .build();
     }
 
-    /**
-     * 结束课堂
-     */
     @Override
     @Transactional
     public void endClass(Long classId, Long teacherId) {
@@ -95,44 +83,77 @@ public class ClassServiceImpl implements ClassService {
         }
 
         clazz.setStatus("ended");
+        clazz.setEndTime(LocalDateTime.now());
         classMapper.updateById(clazz);
-        log.info("课堂已结束: classId={}", classId);
+
+        long durationMinutes = java.time.Duration.between(clazz.getCreateTime(), clazz.getEndTime()).toMinutes();
+        log.info("课堂已结束: classId={}, 时长={}分钟", classId, durationMinutes);
     }
 
     @Override
-    public List<ClassStudentVO> getStudentClassList(Long courseId, Long studentId) {
-        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
-        csWrapper.eq(CourseStudent::getCourseId, courseId)
-                .eq(CourseStudent::getUserId, studentId);
-        if (courseStudentMapper.selectCount(csWrapper) == 0) {
-            throw new BusinessException(403, "您未加入该课程");
+    public List<ClassStudentVO> getClassList(Long courseId, Long userId, Integer role) {
+        // 1. 查询课程
+        Course course = courseMapper.selectById(courseId);
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
         }
 
+        // 2. 如果是教师，必须是该课程创建者
+        boolean isTeacher = course.getUserId().equals(userId);
+
+        // 3. 如果不是教师，校验学生是否已加入该课程
+        if (!isTeacher) {
+            LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+            csWrapper.eq(CourseStudent::getCourseId, courseId)
+                    .eq(CourseStudent::getUserId, userId);
+            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+                throw new BusinessException(403, "您未加入该课程");
+            }
+        }
+
+        // 4. 查询课堂列表
         LambdaQueryWrapper<Class> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Class::getCourseId, courseId)
                 .orderByDesc(Class::getCreateTime);
         List<Class> classList = classMapper.selectList(wrapper);
 
+        // 5. 组装数据
         return classList.stream().map(clazz -> {
-            Integer checkinStatus = null;
+            String checkinStatus = null;
 
-            if ("ended".equals(clazz.getStatus())) {
+            // 只有学生（role=1）才计算签到状态
+            if (role == 1) {
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime classStartTime = clazz.getCreateTime();
+
+                // 查询该学生的签到记录
                 LambdaQueryWrapper<ClassCheck> checkWrapper = new LambdaQueryWrapper<>();
                 checkWrapper.eq(ClassCheck::getClassId, clazz.getId())
-                        .eq(ClassCheck::getUserId, studentId);
+                        .eq(ClassCheck::getUserId, userId);
                 ClassCheck check = classCheckMapper.selectOne(checkWrapper);
+
                 if (check != null) {
-                    checkinStatus = check.getCheckStatus();
+                    // ✅ 有签到记录：根据签到时间判断
+                    long minutesDiff = ChronoUnit.MINUTES.between(classStartTime, check.getCheckinTime());
+                    if (minutesDiff <= 5) {
+                        checkinStatus = "已签到";
+                    } else {
+                        checkinStatus = "迟到";
+                    }
                 } else {
-                    checkinStatus = 3;
-                }
-            } else if ("active".equals(clazz.getStatus())) {
-                LambdaQueryWrapper<ClassCheck> checkWrapper = new LambdaQueryWrapper<>();
-                checkWrapper.eq(ClassCheck::getClassId, clazz.getId())
-                        .eq(ClassCheck::getUserId, studentId);
-                ClassCheck check = classCheckMapper.selectOne(checkWrapper);
-                if (check != null) {
-                    checkinStatus = check.getCheckStatus();
+                    // ❌ 无签到记录
+                    if ("ended".equals(clazz.getStatus())) {
+                        // 课堂已结束，未签到 → 缺勤
+                        checkinStatus = "缺勤";
+                    } else {
+                        // 课堂进行中：根据当前时间判断
+                        long minutesDiff = ChronoUnit.MINUTES.between(classStartTime, now);
+                        if (minutesDiff <= 10) {
+                            checkinStatus = "未签到";
+                        } else {
+                            checkinStatus = "缺勤";
+                        }
+                    }
                 }
             }
 
@@ -141,7 +162,8 @@ public class ClassServiceImpl implements ClassService {
                     .classTitle(clazz.getClassTitle())
                     .status(clazz.getStatus())
                     .checkinStatus(checkinStatus)
-                    .createTime(clazz.getCreateTime())  // ← 返回创建时间
+                    .createTime(clazz.getCreateTime())
+                    .endTime(clazz.getEndTime())
                     .build();
         }).collect(Collectors.toList());
     }

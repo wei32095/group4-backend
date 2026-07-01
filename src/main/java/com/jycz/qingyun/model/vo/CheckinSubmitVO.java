@@ -11,6 +11,6 @@ public class CheckinSubmitVO {//
 
     private Long classId;
     private String classTitle;
-    private Integer checkStatus;
+    private String checkStatus;
     private LocalDateTime checkinTime;
 }
