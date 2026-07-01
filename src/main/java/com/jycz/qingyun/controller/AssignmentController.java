@@ -35,9 +35,12 @@ public class AssignmentController {
         return ApiResult.success("作业发布成功", response);
     }
 
+    /**
+     * 学生查看作业列表（全局）
+     * GET /qingyun/assignment/student/list
+     */
     @GetMapping("/student/list")
     public ApiResult<List<AssignmentStudentListVO>> getStudentAssignmentList(
-            @RequestParam Long courseId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
@@ -47,7 +50,7 @@ public class AssignmentController {
             return ApiResult.error(403, "仅学生可查看作业列表");
         }
 
-        List<AssignmentStudentListVO> response = assignmentService.getStudentAssignmentList(courseId, userId);
+        List<AssignmentStudentListVO> response = assignmentService.getStudentAssignmentList(userId);
         return ApiResult.success(response);
     }
 

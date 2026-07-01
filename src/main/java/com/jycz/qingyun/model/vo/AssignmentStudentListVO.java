@@ -11,6 +11,8 @@ public class AssignmentStudentListVO {
 //
     private Long assignmentId;
     private String assignmentTitle;
+    private Long courseId;
+    private String courseName;
     private LocalDateTime deadline;
     private Integer maxScore;
     private String status;
