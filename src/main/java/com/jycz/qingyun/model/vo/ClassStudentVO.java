@@ -12,6 +12,7 @@ public class ClassStudentVO {//
     private Long id;
     private String classTitle;
     private String status;
-    private Integer checkinStatus;
-    private LocalDateTime createTime;  // ← 新增字段
+    private String checkinStatus;
+    private LocalDateTime createTime;
+    private LocalDateTime endTime;// ← 新增字段
 }

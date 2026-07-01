@@ -15,16 +15,12 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/qingyun/class")//
+@RequestMapping("/qingyun/class")
 @RequiredArgsConstructor
 public class ClassController {
 
     private final ClassService classService;
 
-    /**
-     * 老师发起课堂
-     * POST /api/v1/class/create
-     */
     @PostMapping("/create")
     public ApiResult<ClassCreateVO> createClass(
             @Valid @RequestBody ClassCreateRequest request,
@@ -41,10 +37,6 @@ public class ClassController {
         return ApiResult.success("课堂创建成功", response);
     }
 
-    /**
-     * 老师结束课堂
-     * PUT /api/v1/class/end?classId={classId}
-     */
     @PutMapping("/end")
     public ApiResult<Void> endClass(
             @RequestParam Long classId,
@@ -58,26 +50,22 @@ public class ClassController {
         }
 
         classService.endClass(classId, userId);
-        return ApiResult.success();  // ← 无参调用
+        return ApiResult.success();
     }
 
-    /**
-     * 学生查看课堂列表
-     * GET /api/v1/class/student/list?courseId={courseId}
-     */
-    @GetMapping("/student/list")
-    public ApiResult<List<ClassStudentVO>> getStudentClassList(
+    @GetMapping("/list")
+    public ApiResult<List<ClassStudentVO>> getClassList(
             @RequestParam Long courseId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
         Integer role = (Integer) httpRequest.getAttribute("role");
 
-        if (role == null || role != 1) {
-            return ApiResult.error(403, "仅学生可查看课堂列表");
+        if (role == null || (role != 1 && role != 2)) {
+            return ApiResult.error(403, "无权查看课堂列表");
         }
 
-        List<ClassStudentVO> response = classService.getStudentClassList(courseId, userId);
+        List<ClassStudentVO> response = classService.getClassList(courseId, userId, role);
         return ApiResult.success(response);
     }
 }

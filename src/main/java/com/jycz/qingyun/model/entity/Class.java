@@ -18,9 +18,8 @@ public class Class {//
 
     private String classTitle;
 
-    private String fileUrl;
-
     private String status;
 
-    private LocalDateTime createTime;  // ← 新增字段
+    private LocalDateTime createTime;
+    private LocalDateTime endTime;// ← 新增字段
 }
