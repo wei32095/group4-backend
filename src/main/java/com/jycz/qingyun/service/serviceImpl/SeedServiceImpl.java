@@ -29,6 +29,11 @@ public class SeedServiceImpl implements SeedService {
         vo.setDescription(seed.getDescription());
         vo.setMaxGrowth(seed.getMaxGrowth());
         vo.setImage(seed.getImage());
+        vo.setStage0Image(seed.getStage0Image());
+        vo.setStage1Image(seed.getStage1Image());
+        vo.setStage2Image(seed.getStage2Image());
+        vo.setStage3Image(seed.getStage3Image());
+        vo.setStage4Image(seed.getStage4Image());
         vo.setPrice(seed.getPrice());
         return vo;
     }

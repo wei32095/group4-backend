@@ -300,6 +300,11 @@ CREATE TABLE `seed` (
     `description` VARCHAR(200) DEFAULT NULL COMMENT '简介',
     `max_growth` INT NOT NULL COMMENT '最大生长值',
     `image` VARCHAR(500) DEFAULT NULL COMMENT '图片URL',
+    `stage0_image` VARCHAR(500) DEFAULT NULL COMMENT '种子阶段图片',
+    `stage1_image` VARCHAR(500) DEFAULT NULL COMMENT '发芽阶段图片',
+    `stage2_image` VARCHAR(500) DEFAULT NULL COMMENT '幼苗阶段图片',
+    `stage3_image` VARCHAR(500) DEFAULT NULL COMMENT '开花阶段图片',
+    `stage4_image` VARCHAR(500) DEFAULT NULL COMMENT '成熟阶段图片',
     `price` INT NOT NULL COMMENT '购买价格（积分）',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`)
@@ -522,11 +527,11 @@ INSERT INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `l
 (5, 3, 1, 15, 45, 3, NOW());
 
 -- 16. 花卉品种
-INSERT INTO `seed` (`id`, `variety`, `description`, `max_growth`, `image`, `price`) VALUES
-(1, '向日葵', '向阳而生，充满活力的花朵', 100, 'https://example.com/seeds/sunflower.png', 0),
-(2, '玫瑰', '热情似火，经典浪漫之选', 120, 'https://example.com/seeds/rose.png', 50),
-(3, '仙人掌', '坚韧不拔，耐旱易养', 80, 'https://example.com/seeds/cactus.png', 30),
-(4, '樱花', '刹那芳华，绚烂而短暂', 150, 'https://example.com/seeds/cherry.png', 80);
+INSERT INTO `seed` (`id`, `variety`, `description`, `max_growth`, `image`, `stage0_image`, `stage1_image`, `stage2_image`, `stage3_image`, `stage4_image`, `price`) VALUES
+(1, '向日葵', '向阳而生，充满活力的花朵', 100, 'https://example.com/seeds/sunflower.png', 'https://example.com/plants/sunflower_0.png', 'https://example.com/plants/sunflower_1.png', 'https://example.com/plants/sunflower_2.png', 'https://example.com/plants/sunflower_3.png', 'https://example.com/plants/sunflower_4.png', 0),
+(2, '玫瑰', '热情似火，经典浪漫之选', 120, 'https://example.com/seeds/rose.png', 'https://example.com/plants/rose_0.png', 'https://example.com/plants/rose_1.png', 'https://example.com/plants/rose_2.png', 'https://example.com/plants/rose_3.png', 'https://example.com/plants/rose_4.png', 50),
+(3, '仙人掌', '坚韧不拔，耐旱易养', 80, 'https://example.com/seeds/cactus.png', 'https://example.com/plants/cactus_0.png', 'https://example.com/plants/cactus_1.png', 'https://example.com/plants/cactus_2.png', 'https://example.com/plants/cactus_3.png', 'https://example.com/plants/cactus_4.png', 30),
+(4, '樱花', '刹那芳华，绚烂而短暂', 150, 'https://example.com/seeds/cherry.png', 'https://example.com/plants/cherry_0.png', 'https://example.com/plants/cherry_1.png', 'https://example.com/plants/cherry_2.png', 'https://example.com/plants/cherry_3.png', 'https://example.com/plants/cherry_4.png', 80);
 
 -- 17. 花卉实例
 INSERT INTO `flower` (`id`, `user_id`, `seed_id`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
