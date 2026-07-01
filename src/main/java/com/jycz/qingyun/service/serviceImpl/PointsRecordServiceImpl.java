@@ -1,7 +1,6 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jycz.qingyun.mapper.PointsRecordMapper;
 import com.jycz.qingyun.model.entity.PointsRecord;
 import com.jycz.qingyun.model.vo.PointsRecordListVO;
@@ -70,30 +69,25 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     }
 
     @Override
-    public PointsRecordListVO getRecords(Long userId, int page, int size) {
+    public PointsRecordListVO getRecords(Long userId) {
         Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
         if (currentPoints == null) {
             currentPoints = 0;
         }
 
-        Page<PointsRecord> pageObj = new Page<>(page, size);
         LambdaQueryWrapper<PointsRecord> wrapper = new LambdaQueryWrapper<PointsRecord>()
                 .eq(PointsRecord::getUserId, userId)
                 .orderByDesc(PointsRecord::getChangeTime);
 
-        Page<PointsRecord> result = pointsRecordMapper.selectPage(pageObj, wrapper);
+        List<PointsRecord> records = pointsRecordMapper.selectList(wrapper);
 
-        List<PointsRecordVO> voList = result.getRecords().stream()
+        List<PointsRecordVO> voList = records.stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
 
         PointsRecordListVO listVO = new PointsRecordListVO();
         listVO.setCurrentPoints(currentPoints);
-        listVO.setLocation(voList);
-        listVO.setTotal(result.getTotal());
-        listVO.setPageNum((int) result.getCurrent());
-        listVO.setPageSize((int) result.getSize());
-        listVO.setPages((int) result.getPages());
+        listVO.setRecords(voList);
         return listVO;
     }
 
