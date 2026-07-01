@@ -64,4 +64,10 @@ public interface NoticeService {
      * 发送问题被回复通知（给问题发布者）
      */
     void sendProblemRepliedNotice(Long questionAuthorId, String replierName, String problemTitle);
+
+    /**
+     * 管理员发布通知，按角色推送
+     * @return 接收人数
+     */
+    int publishAdminNotice(String noticeTitle, String noticeContent, Integer targetRole);
 }
