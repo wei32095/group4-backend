@@ -10,7 +10,7 @@ public interface ClassService {
 
     ClassCreateVO createClass(ClassCreateRequest request, Long teacherId);
 
-    List<ClassStudentVO> getStudentClassList(Long courseId, Long studentId);
+    void endClass(Long classId, Long teacherId);
 
-    void endClass(Long classId, Long teacherId);//
+    List<ClassStudentVO> getClassList(Long courseId, Long userId, Integer role);
 }

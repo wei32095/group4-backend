@@ -13,7 +13,6 @@ public class ClassCreateVO {//
     private Long courseId;
     private Long userId;
     private String classTitle;
-    private String fileUrl;
     private String status;
     private LocalDateTime createTime;  // ← 新增字段
 }

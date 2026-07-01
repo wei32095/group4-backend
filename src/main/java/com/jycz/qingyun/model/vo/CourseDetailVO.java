@@ -15,6 +15,7 @@ public class CourseDetailVO {
     private Integer studentCount;
     private String courseCode;
     private String status;
+
     private String teacherName;
     private String teacherAvatar;
     private LocalDateTime createdAt;
