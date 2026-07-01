@@ -450,6 +450,24 @@ CREATE TABLE `course_problem_reply` (
 
 
 -- =============================================
+-- 25. 用户反馈表
+-- =============================================
+CREATE TABLE `feedback` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '反馈ID',
+    `user_id` BIGINT NOT NULL COMMENT '提交人',
+    `content` TEXT NOT NULL COMMENT '反馈内容',
+    `reply_content` TEXT DEFAULT NULL COMMENT '管理员回复',
+    `reply_time` DATETIME DEFAULT NULL COMMENT '回复时间',
+    `status` TINYINT DEFAULT '0' COMMENT '状态：0-待处理，1-已回复',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户反馈表';
+
+
+-- =============================================
 -- 测试数据
 -- =============================================
 
@@ -473,3 +491,7 @@ INSERT IGNORE INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `attribute_t
 INSERT IGNORE INTO `flower` (`id`, `user_id`, `seed_id`, `sunlight`, `water`, `nutrient`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES (1,2,2,0,0,0,0,3,1,'2026-06-28 13:10:16','2026-07-01 15:29:33'),(2,2,1,0,0,0,0,1,0,'2026-06-28 13:10:16','2026-07-01 15:29:33'),(3,3,2,90,100,70,90,1,0,'2026-06-28 13:10:16','2026-07-01 15:31:47'),(4,6,1,0,0,0,0,0,0,'2026-06-29 22:56:34','2026-06-29 22:56:34'),(5,3,1,0,0,0,0,0,0,'2026-07-01 15:32:37','2026-07-01 15:32:37'),(6,24,1,20,10,20,50,0,0,'2026-07-01 16:22:39','2026-07-01 16:41:58');
 INSERT IGNORE INTO `student_analysis` (`id`, `user_id`, `total_study_duration`, `assignment_correct_rate`, `week_study_duration`, `updated_at`) VALUES (1,2,14455,85.50,55,'2026-06-30 11:16:59'),(2,3,7200,70.00,1800,'2026-06-28 13:10:16');
 INSERT IGNORE INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice_status`, `notice_type`, `push_time`) VALUES (1,2,'作业批改通知','您的第一次作业已批改，得分85',1,4,'2026-06-28 13:10:16'),(2,2,'课堂提醒','第二堂课将于7月8日开始，请准时参加',1,1,'2026-06-28 13:10:16'),(3,3,'作业截止提醒','您的第二次作业即将截止，请尽快提交',0,2,'2026-06-28 13:10:16'),(4,2,'系统升级通知','平台将于7月1日凌晨2:00-5:00进行系统升级',1,0,'2026-06-29 10:00:00'),(5,2,'第三节上课提醒','「Java高级编程」第三讲将于7月15日14:00开始',1,1,'2026-06-29 09:00:00'),(6,3,'新作业发布','第三次作业：并发编程练习已发布，截止日期7月20日',0,2,'2026-06-28 15:00:00'),(7,2,'作业提交提醒','李小明提交了第2章作业，等待批改',1,3,'2026-06-28 14:00:00'),(8,3,'作业批改通知','您的第二次作业已批改，得分92',1,4,'2026-06-28 11:00:00'),(9,2,'课程通知','暑期课程安排已更新，请查看最新课表',1,0,'2026-06-27 16:00:00'),(10,3,'上课提醒','「数据库系统原理」本周五课程取消',0,1,'2026-06-27 10:00:00'),(11,26,'notice1','balilallal',1,1,'2026-07-01 14:32:19'),(12,26,'notice2','2222222',1,2,'2026-07-01 14:33:08');
+INSERT IGNORE INTO `feedback` (`id`, `user_id`, `content`, `reply_content`, `reply_time`, `status`, `created_at`) VALUES
+(1, 2, '视频播放经常卡顿，希望能优化一下', NULL, NULL, 0, '2026-07-01 10:00:00'),
+(2, 3, '作业提交后看不到提交状态，建议加个标识', '感谢反馈，已优化提交状态显示，请刷新查看', '2026-07-01 14:00:00', 1, '2026-07-01 09:30:00'),
+(3, 1, '希望在课堂上增加举手发言功能', NULL, NULL, 0, '2026-07-01 15:00:00');
