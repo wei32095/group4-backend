@@ -14,6 +14,7 @@ import com.jycz.qingyun.model.vo.VoteSubmitVO;
 import com.jycz.qingyun.mapper.ClassMapper;
 import com.jycz.qingyun.mapper.ClassVoteMapper;
 import com.jycz.qingyun.mapper.VoteRecordMapper;
+import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.service.VoteService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,7 @@ public class VoteServiceImpl implements VoteService {
     private final ClassMapper classMapper;
     private final VoteRecordMapper voteRecordMapper;
     private final ObjectMapper objectMapper;
-
+    private final PointsRecordService pointsRecordService;  // ← 新增
     @Override
     @Transactional
     public VoteCreateVO createVote(VoteCreateRequest request, Long teacherId) {
@@ -88,15 +89,18 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @Transactional
     public VoteSubmitVO submitVote(VoteSubmitRequest request, Long studentId) {
+        // 1. 查询投票
         ClassVote vote = classVoteMapper.selectById(request.getVoteId());
         if (vote == null) {
             throw new BusinessException(404, "投票不存在");
         }
 
-        if ("ended".equals(vote.getStatus())) {
+        // 2. ✅ 校验投票是否已结束（直接比较时间）
+        if (LocalDateTime.now().isAfter(vote.getEndedAt())) {
             throw new BusinessException(400, "投票已结束");
         }
 
+        // 3. 检查是否已投过票
         LambdaQueryWrapper<VoteRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(VoteRecord::getVoteId, request.getVoteId())
                 .eq(VoteRecord::getUserId, studentId);
@@ -104,12 +108,14 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(409, "您已投过票");
         }
 
+        // 4. 判断是否正确
         Integer isCorrect = 0;
         if (vote.getCorrectOption() != null &&
                 vote.getCorrectOption().equals(request.getSelectedOption())) {
             isCorrect = 1;
         }
 
+        // 5. 保存投票记录
         VoteRecord record = new VoteRecord();
         record.setVoteId(request.getVoteId());
         record.setUserId(studentId);
@@ -118,8 +124,13 @@ public class VoteServiceImpl implements VoteService {
         record.setSubmittedAt(LocalDateTime.now());
         voteRecordMapper.insert(record);
 
-        log.info("投票提交成功: voteId={}, studentId={}, option={}",
-                request.getVoteId(), studentId, request.getSelectedOption());
+        // 6. 投票正确积分处理
+        if (isCorrect == 1) {
+            pointsRecordService.handleVoteCorrectPoints(studentId);
+        }
+
+        log.info("投票提交成功: voteId={}, studentId={}, option={}, isCorrect={}",
+                request.getVoteId(), studentId, request.getSelectedOption(), isCorrect);
 
         return VoteSubmitVO.builder()
                 .voteId(request.getVoteId())

@@ -10,6 +10,7 @@ import com.jycz.qingyun.model.vo.*;
 import com.jycz.qingyun.mapper.*;
 import com.jycz.qingyun.service.AssignmentService;
 import com.jycz.qingyun.service.NoticeService;
+import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final ObjectMapper objectMapper;
     private final CourseMapper courseMapper;  // ← 新增
     private final NoticeService noticeService;  // ← 新增
+    private final PointsRecordService pointsRecordService;  // ← 新增
     @Override
     @Transactional
     public AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId) {
@@ -304,6 +306,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             String studentName = student != null ? student.getName() : "未知学生";
             noticeService.sendSubmitNotice(course.getUserId(), studentName, assignment.getAssignmentTitle());
         }
+
         return AssignmentSubmitVO.builder()
                 .assignmentId(request.getAssignmentId())
                 .status("SUBMITTED")
@@ -353,6 +356,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         User student = userMapper.selectById(request.getStudentId());
         // ✅ 发送作业批改通知给学生
         noticeService.sendGradeNotice(request.getStudentId(), assignment.getAssignmentTitle(), totalScore);
+        // 作业批改积分（成绩 ÷ 5）
+        pointsRecordService.handleAssignmentGradePoints(request.getStudentId(), totalScore);
+
         return AssignmentGradeVO.builder()
                 .assignmentId(request.getAssignmentId())
                 .studentId(request.getStudentId())

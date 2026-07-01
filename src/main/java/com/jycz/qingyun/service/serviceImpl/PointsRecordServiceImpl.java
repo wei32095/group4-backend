@@ -7,6 +7,8 @@ import com.jycz.qingyun.model.entity.PointsRecord;
 import com.jycz.qingyun.model.vo.PointsRecordListVO;
 import com.jycz.qingyun.model.vo.PointsRecordVO;
 import com.jycz.qingyun.service.PointsRecordService;
+import com.jycz.qingyun.utils.BusinessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class PointsRecordServiceImpl implements PointsRecordService {
 
@@ -37,6 +40,9 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         record.setSourceType(sourceType);
         record.setChangeTime(LocalDateTime.now());
         pointsRecordMapper.insert(record);
+
+        log.info("加分成功: userId={}, points={}, sourceType={}, newBalance={}",
+                userId, points, sourceType, currentPoints + points);
     }
 
     @Override
@@ -47,7 +53,7 @@ public class PointsRecordServiceImpl implements PointsRecordService {
             currentPoints = 0;
         }
         if (currentPoints < points) {
-            throw new RuntimeException("积分不足");
+            throw new BusinessException(400, "积分不足，当前积分：" + currentPoints);
         }
 
         PointsRecord record = new PointsRecord();
@@ -58,17 +64,18 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         record.setSourceType(sourceType);
         record.setChangeTime(LocalDateTime.now());
         pointsRecordMapper.insert(record);
+
+        log.info("扣分成功: userId={}, points={}, sourceType={}, newBalance={}",
+                userId, points, sourceType, currentPoints - points);
     }
 
     @Override
     public PointsRecordListVO getRecords(Long userId, int page, int size) {
-        // 1. 查询当前总积分
         Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
         if (currentPoints == null) {
             currentPoints = 0;
         }
 
-        // 2. 分页查询流水，按时间倒序
         Page<PointsRecord> pageObj = new Page<>(page, size);
         LambdaQueryWrapper<PointsRecord> wrapper = new LambdaQueryWrapper<PointsRecord>()
                 .eq(PointsRecord::getUserId, userId)
@@ -76,12 +83,10 @@ public class PointsRecordServiceImpl implements PointsRecordService {
 
         Page<PointsRecord> result = pointsRecordMapper.selectPage(pageObj, wrapper);
 
-        // 3. 转换 VO
         List<PointsRecordVO> voList = result.getRecords().stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
 
-        // 4. 组装
         PointsRecordListVO listVO = new PointsRecordListVO();
         listVO.setCurrentPoints(currentPoints);
         listVO.setLocation(voList);
@@ -90,6 +95,51 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         listVO.setPageSize((int) result.getSize());
         listVO.setPages((int) result.getPages());
         return listVO;
+    }
+
+    // ========== 新增：积分规则方法 ==========
+
+    @Override
+    @Transactional
+    public void handleCheckinPoints(Long userId, Integer checkStatus) {
+        if (checkStatus == 1) {
+            // 正常签到：+5分
+            addPoints(userId, 5, 1);
+            log.info("签到成功加分: userId={}, +5分", userId);
+        } else if (checkStatus == 3) {
+            // 缺勤：-5分
+            deductPoints(userId, 5, 1);
+            log.info("缺勤扣分: userId={}, -5分", userId);
+        }
+        // 迟到（checkStatus == 2）：无变化
+    }
+
+    @Override
+    @Transactional
+    public void handleVoteCorrectPoints(Long userId) {
+        addPoints(userId, 5, 2);
+        log.info("投票正确加分: userId={}, +5分", userId);
+    }
+
+    @Override
+    @Transactional
+    public void handleAssignmentGradePoints(Long userId, Integer score) {
+        if (score == null || score <= 0) {
+            return;
+        }
+        // 成绩 ÷ 5，保留整数
+        int points = score / 5;
+        if (points > 0) {
+            addPoints(userId, points, 3);
+            log.info("作业批改加分: userId={}, score={}, points={}", userId, score, points);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void handleProblemRepliedPoints(Long userId) {
+        addPoints(userId, 5, 6);
+        log.info("问题被老师回复加分: userId={}, +5分", userId);
     }
 
     private PointsRecordVO toVO(PointsRecord record) {
