@@ -1,6 +1,7 @@
 package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
+import com.jycz.qingyun.model.vo.AdminDashboardVO;
 import com.jycz.qingyun.model.vo.AdminUserListVO;
 import com.jycz.qingyun.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +36,21 @@ public class AdminController {
         }
 
         AdminUserListVO vo = userService.getAdminUserList(pageNum, pageSize);
+        return ApiResult.success(vo);
+    }
+
+    /**
+     * 管理员看板数据
+     * GET /qingyun/admin/dashboard
+     */
+    @GetMapping("/dashboard")
+    public ApiResult<AdminDashboardVO> getDashboard(HttpServletRequest httpRequest) {
+        Integer role = (Integer) httpRequest.getAttribute("role");
+        if (role == null || role != 3) {
+            return ApiResult.error(403, "仅管理员可查看");
+        }
+
+        AdminDashboardVO vo = userService.getDashboard();
         return ApiResult.success(vo);
     }
 }

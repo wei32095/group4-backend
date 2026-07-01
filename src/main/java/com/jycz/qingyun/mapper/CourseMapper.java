@@ -10,4 +10,13 @@ public interface CourseMapper extends BaseMapper<Course> {
 
     @Select("SELECT COUNT(*) FROM course WHERE course_code = #{courseCode}")
     int countByCourseCode(String courseCode);
+
+    @Select("SELECT COUNT(*) FROM course")
+    long countTotal();
+
+    @Select("SELECT COUNT(*) FROM course WHERE audit_status = 0")
+    long countPending();
+
+    @Select("SELECT COUNT(*) FROM course WHERE status = 'active'")
+    long countActive();
 }
