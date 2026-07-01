@@ -11,7 +11,7 @@ public interface AssignmentService {
 //
     AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId);
 
-    List<AssignmentStudentListVO> getStudentAssignmentList(Long courseId, Long studentId);
+    List<AssignmentStudentListVO> getStudentAssignmentList(Long studentId);
 
     AssignmentDetailVO getAssignmentDetail(Long assignmentId, Long userId);
 

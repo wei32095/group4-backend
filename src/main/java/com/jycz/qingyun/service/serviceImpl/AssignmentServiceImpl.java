@@ -96,14 +96,40 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public List<AssignmentStudentListVO> getStudentAssignmentList(Long courseId, Long studentId) {
+    public List<AssignmentStudentListVO> getStudentAssignmentList(Long studentId) {
+        // 1. 查询该学生加入的所有课程
+        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+        csWrapper.eq(CourseStudent::getUserId, studentId);
+        List<CourseStudent> courseStudents = courseStudentMapper.selectList(csWrapper);
+
+        if (courseStudents.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 获取课程ID列表
+        List<Long> courseIds = courseStudents.stream()
+                .map(CourseStudent::getCourseId)
+                .collect(Collectors.toList());
+
+        // 3. 查询这些课程下的所有作业
         LambdaQueryWrapper<Assignment> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Assignment::getCourseId, courseId)
+        wrapper.in(Assignment::getCourseId, courseIds)
                 .orderByDesc(Assignment::getAssignmentCreateTime);
         List<Assignment> assignments = assignmentMapper.selectList(wrapper);
 
+        if (assignments.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 4. 批量查询课程信息（获取课程名称）
+        Map<Long, Course> courseMap = courseMapper.selectBatchIds(courseIds).stream()
+                .collect(Collectors.toMap(Course::getId, c -> c));
+
+        // 5. 组装数据
         List<AssignmentStudentListVO> result = new ArrayList<>();
+
         for (Assignment assignment : assignments) {
+            // 查询该学生对这份作业的提交情况
             List<ObjectSubmit> objectSubmits = objectSubmitMapper.selectByAssignmentAndUser(assignment.getId(), studentId);
             List<SubjectSubmit> subjectSubmits = subjectSubmitMapper.selectByAssignmentAndUser(assignment.getId(), studentId);
 
@@ -137,8 +163,14 @@ public class AssignmentServiceImpl implements AssignmentService {
                 status = "PENDING";
             }
 
+            // 获取课程名称
+            Course course = courseMap.get(assignment.getCourseId());
+            String courseName = course != null ? course.getCourseTitle() : "未知课程";
+
             result.add(AssignmentStudentListVO.builder()
                     .assignmentId(assignment.getId())
+                    .courseId(assignment.getCourseId())
+                    .courseName(courseName)           // ← 新增
                     .assignmentTitle(assignment.getAssignmentTitle())
                     .deadline(assignment.getDeadline())
                     .maxScore(assignment.getMaxScore())
