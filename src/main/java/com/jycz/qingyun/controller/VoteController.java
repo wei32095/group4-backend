@@ -3,6 +3,7 @@ package com.jycz.qingyun.controller;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.VoteCreateRequest;
 import com.jycz.qingyun.model.dto.VoteSubmitRequest;
+import com.jycz.qingyun.model.vo.VoteActiveListVO;
 import com.jycz.qingyun.model.vo.VoteCreateVO;
 import com.jycz.qingyun.model.vo.VoteResultVO;
 import com.jycz.qingyun.model.vo.VoteSubmitVO;
@@ -12,6 +13,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j//
 @RestController
@@ -66,6 +69,22 @@ public class VoteController {
         }
 
         VoteResultVO response = voteService.getVoteResult(voteId, userId);
+        return ApiResult.success(response);
+    }
+
+    @GetMapping("/active-list")
+    public ApiResult<List<VoteActiveListVO>> getActiveVoteList(
+            @RequestParam Long classId,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 1) {
+            return ApiResult.error(403, "仅学生可查看");
+        }
+
+        List<VoteActiveListVO> response = voteService.getActiveVoteList(classId, userId);
         return ApiResult.success(response);
     }
 }
