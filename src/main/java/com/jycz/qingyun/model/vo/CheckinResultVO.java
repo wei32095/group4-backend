@@ -23,7 +23,7 @@ public class CheckinResultVO {//
     public static class CheckinRecordVO {
         private Long userId;
         private String studentName;
-        private Integer checkStatus;
+        private String checkStatus;
         private LocalDateTime checkinTime;
     }
 }

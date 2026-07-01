@@ -68,16 +68,20 @@ public class CheckinServiceImpl implements CheckinService {
             throw new BusinessException(409, "您已签到");
         }
 
-        // 5. 计算签到状态（以课堂创建时间为基准）
+        // 5. 计算签到状态
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime classStartTime = clazz.getCreateTime();
         long minutesDiff = ChronoUnit.MINUTES.between(classStartTime, now);
 
-        int checkStatus;
-        if (minutesDiff <= 3) {
-            checkStatus = 1;  // 正常
+        int checkStatusNum;
+        String checkStatusStr;
+
+        if (minutesDiff <= 5) {
+            checkStatusNum = 1;
+            checkStatusStr = "已签到";
         } else if (minutesDiff <= 10) {
-            checkStatus = 2;  // 迟到
+            checkStatusNum = 2;
+            checkStatusStr = "迟到";
         } else {
             throw new BusinessException(400, "已超过签到时间（超过10分钟）");
         }
@@ -86,17 +90,19 @@ public class CheckinServiceImpl implements CheckinService {
         ClassCheck classCheck = new ClassCheck();
         classCheck.setClassId(request.getClassId());
         classCheck.setUserId(studentId);
-        classCheck.setCheckStatus(checkStatus);
+        classCheck.setCheckStatus(checkStatusNum);
         classCheck.setCheckinTime(now);
         classCheckMapper.insert(classCheck);
 
-        log.info("学生签到成功: classId={}, studentId={}, status={}", request.getClassId(), studentId, checkStatus);
-        pointsRecordService.handleCheckinPoints(studentId, checkStatus);
+
+
+        // 8. 积分处理
+        pointsRecordService.handleCheckinPoints(studentId, checkStatusNum);
 
         return CheckinSubmitVO.builder()
                 .classId(clazz.getId())
                 .classTitle(clazz.getClassTitle())
-                .checkStatus(checkStatus)
+                .checkStatus(checkStatusStr)
                 .checkinTime(now)
                 .build();
     }
@@ -136,26 +142,29 @@ public class CheckinServiceImpl implements CheckinService {
             Long studentId = cs.getUserId();
             User student = userMapper.selectById(studentId);
             ClassCheck check = checkinMap.get(studentId);
-            Integer status;
+            String checkStatusStr;
             LocalDateTime checkinTime = null;
 
             if (check != null) {
-                status = check.getCheckStatus();
                 checkinTime = check.getCheckinTime();
-                if (status == 1) {
+                if (check.getCheckStatus() == 1) {
+                    checkStatusStr = "已签到";    // ← 中文
                     normalCount++;
-                } else if (status == 2) {
+                } else if (check.getCheckStatus() == 2) {
+                    checkStatusStr = "迟到";      // ← 中文
                     lateCount++;
+                } else {
+                    checkStatusStr = "未知";
                 }
             } else {
-                status = 3;  // 缺勤
+                checkStatusStr = "缺勤";          // ← 中文
                 absentCount++;
             }
 
             records.add(CheckinResultVO.CheckinRecordVO.builder()
                     .userId(studentId)
                     .studentName(student != null ? student.getName() : "未知学生")
-                    .checkStatus(status)
+                    .checkStatus(checkStatusStr)   // ← 中文
                     .checkinTime(checkinTime)
                     .build());
         }
