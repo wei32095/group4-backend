@@ -41,6 +41,7 @@ CREATE TABLE `course` (
     `description` TEXT COMMENT '课程描述',
     `cover` VARCHAR(500) DEFAULT NULL COMMENT '封面图',
     `student_count` INT DEFAULT '0' COMMENT '学生人数',
+    
     `course_code` VARCHAR(50) NOT NULL COMMENT '课程码',
     `status` VARCHAR(20) DEFAULT 'active' COMMENT '状态：active-进行中，archived-已归档',
     `audit_status` TINYINT DEFAULT '0' COMMENT '审核状态：0-待审，1-通过，2-驳回',
@@ -109,7 +110,25 @@ CREATE TABLE `class` (
 
 
 -- =============================================
--- 6. 作业表
+-- 6. 课程资源表
+-- =============================================
+CREATE TABLE `course_resource` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源ID',
+    `course_id` BIGINT NOT NULL COMMENT '所属课程ID',
+    `user_id` BIGINT NOT NULL COMMENT '上传者ID（教师）',
+    `file_name` VARCHAR(200) NOT NULL COMMENT '文件名',
+    `file_url` VARCHAR(500) NOT NULL COMMENT '文件访问URL（OSS地址）',
+    `description` VARCHAR(200) DEFAULT NULL COMMENT '资源描述',
+    `download_count` INT DEFAULT 0 COMMENT '下载次数',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_course_id (`course_id`),
+    INDEX idx_user_id (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课程资源表';
+
+
+-- =============================================
+-- 7. 作业表
 -- =============================================
 CREATE TABLE `assignment` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '作业ID',
@@ -127,7 +146,7 @@ CREATE TABLE `assignment` (
 
 
 -- =============================================
--- 7. 题目表
+-- 8. 题目表
 -- =============================================
 CREATE TABLE `question` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '题目ID',
@@ -144,7 +163,7 @@ CREATE TABLE `question` (
 
 
 -- =============================================
--- 8. 客观题提交表
+-- 9. 客观题提交表
 -- =============================================
 CREATE TABLE `object_submit` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '提交ID',
@@ -162,7 +181,7 @@ CREATE TABLE `object_submit` (
 
 
 -- =============================================
--- 9. 主观题提交表
+-- 10. 主观题提交表
 -- =============================================
 CREATE TABLE `subject_submit` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '提交ID',
@@ -186,7 +205,7 @@ CREATE TABLE `subject_submit` (
 
 
 -- =============================================
--- 10. 课堂签到表
+-- 11. 课堂签到表
 -- =============================================
 CREATE TABLE `class_check` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '签到ID',
@@ -202,7 +221,7 @@ CREATE TABLE `class_check` (
 
 
 -- =============================================
--- 11. 课堂投票表
+-- 12. 课堂投票表
 -- =============================================
 CREATE TABLE `class_vote` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '投票ID',
@@ -220,7 +239,7 @@ CREATE TABLE `class_vote` (
 
 
 -- =============================================
--- 12. 投票记录表
+-- 13. 投票记录表
 -- =============================================
 CREATE TABLE `vote_record` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '记录ID',
@@ -237,7 +256,7 @@ CREATE TABLE `vote_record` (
 
 
 -- =============================================
--- 13. 课堂聊天表
+-- 14. 课堂聊天表
 -- =============================================
 CREATE TABLE `class_chat` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '消息ID',
@@ -253,7 +272,7 @@ CREATE TABLE `class_chat` (
 
 
 -- =============================================
--- 14. 自习室记录表
+-- 15. 自习室记录表
 -- =============================================
 CREATE TABLE `study_room` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '记录ID',
@@ -275,7 +294,7 @@ CREATE TABLE `study_room` (
 
 
 -- =============================================
--- 15. 积分记录表
+-- 16. 积分记录表
 -- =============================================
 CREATE TABLE `points_record` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '积分记录ID',
@@ -292,7 +311,7 @@ CREATE TABLE `points_record` (
 
 
 -- =============================================
--- 16. 花卉品种配置表
+-- 17. 花卉品种配置表
 -- =============================================
 CREATE TABLE `seed` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '品种ID',
@@ -314,7 +333,7 @@ CREATE TABLE `seed` (
 
 
 -- =============================================
--- 17. 花卉实例表
+-- 18. 花卉实例表
 -- =============================================
 CREATE TABLE `flower` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '花卉ID',
@@ -335,7 +354,7 @@ CREATE TABLE `flower` (
 
 
 -- =============================================
--- 18. 商店道具表
+-- 19. 商店道具表
 -- =============================================
 CREATE TABLE `shop_item` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '道具ID',
@@ -351,7 +370,7 @@ CREATE TABLE `shop_item` (
 
 
 -- =============================================
--- 19. 系统通知表
+-- 20. 系统通知表
 -- =============================================
 CREATE TABLE `notice` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '通知ID',
@@ -367,7 +386,7 @@ CREATE TABLE `notice` (
 
 
 -- =============================================
--- 20. 学情分析表
+-- 21. 学情分析表
 -- =============================================
 CREATE TABLE `student_analysis` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '分析ID',
@@ -383,7 +402,7 @@ CREATE TABLE `student_analysis` (
 
 
 -- =============================================
--- 21. 敏感词表
+-- 22. 敏感词表
 -- =============================================
 CREATE TABLE `sensitive_word` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '敏感词ID',
@@ -397,7 +416,7 @@ CREATE TABLE `sensitive_word` (
 
 
 -- =============================================
--- 22. 课程问题表
+-- 23. 课程问题表
 -- =============================================
 CREATE TABLE `course_problem` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '问题ID',
@@ -415,7 +434,7 @@ CREATE TABLE `course_problem` (
 
 
 -- =============================================
--- 23. 课程问题回复表
+-- 24. 课程问题回复表
 -- =============================================
 CREATE TABLE `course_problem_reply` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '回复ID',
@@ -434,153 +453,23 @@ CREATE TABLE `course_problem_reply` (
 -- 测试数据
 -- =============================================
 
--- 1. 用户
-INSERT INTO `user` (`id`, `name`, `password`, `phone`, `bio`, `avatar`, `role`, `openid`, `status`, `created_at`, `updated_at`) VALUES
-(1, '张老师', 'encrypted_pwd_1', '13800000001', '资深Java讲师', 'https://example.com/avatar1.jpg', 2, 'wx_openid_001', 1, NOW(), NOW()),
-(2, '李小明', 'encrypted_pwd_2', '13800000002', '大三学生，热爱编程', 'https://example.com/avatar2.jpg', 1, 'wx_openid_002', 1, NOW(), NOW()),
-(3, '王小红', 'encrypted_pwd_3', '13800000003', '大二学生，喜欢设计', 'https://example.com/avatar3.jpg', 1, 'wx_openid_003', 1, NOW(), NOW()),
-(4, 'admin', 'encrypted_pwd_4', '13800000004', '系统管理员', 'https://example.com/avatar4.jpg', 3, NULL, 1, NOW(), NOW());
-
--- 2. 课程
-INSERT INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `audit_status`, `audit_remark`, `audit_time`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Java高级编程', '深入理解Java虚拟机、并发编程', 'https://example.com/course1.jpg', 2, 'JAVA2026', 'active', 1, '', NOW(), NOW(), NOW()),
-(2, 1, '数据库系统原理', 'MySQL、事务、索引优化', 'https://example.com/course2.jpg', 1, 'DB2026', 'archived', 0, '待审核', NULL, NOW(), NOW());
-
--- 3. 课程-学生关联
-INSERT INTO `course_student` (`id`, `course_id`, `user_id`, `joined_at`) VALUES
-(1, 1, 2, NOW()), (2, 1, 3, NOW()), (3, 2, 2, NOW());
-
--- 4. 课程评价
-INSERT INTO `course_review` (`id`, `course_id`, `user_id`, `star`, `review_content`, `likecount`, `review_create_time`) VALUES
-(1, 1, 2, 5, '讲得很清晰，受益匪浅！', 3, NOW()),
-(2, 1, 3, 4, '内容充实，但语速稍快', 1, NOW());
-
--- 5. 课堂
-INSERT INTO `class` (`id`, `course_id`, `user_id`, `class_title`, `file_url`, `start_time`, `end_time`, `status`, `create_time`) VALUES
-(1, 1, 1, '第一讲：JVM内存模型', 'https://example.com/ppt1.pptx', '2026-07-01 09:00:00', '2026-07-01 11:00:00', 'ended', NOW()),
-(2, 1, 1, '第二讲：垃圾回收机制', 'https://example.com/ppt2.pptx', '2026-07-08 09:00:00', '2026-07-08 11:00:00', 'active', NOW()),
-(3, 2, 1, '第一讲：事务隔离级别', NULL, '2026-06-20 14:00:00', '2026-06-20 16:00:00', 'ended', NOW());
-
--- 6. 作业
-INSERT INTO `assignment` (`id`, `course_id`, `assignment_title`, `deadline`, `max_score`, `student_status`, `assignment_create_time`, `updated_at`) VALUES
-(1, 1, '第一次作业：JVM内存划分', '2026-07-05 23:59:59', 100, 'SUBMITTED', NOW(), NOW()),
-(2, 1, '第二次作业：垃圾回收算法', '2026-07-15 23:59:59', 100, 'PENDING', NOW(), NOW()),
-(3, 2, '数据库事务练习', '2026-06-25 23:59:59', 50, 'OVERDUE', NOW(), NOW());
-
--- 7. 题目
-INSERT INTO `question` (`id`, `assignment_id`, `type`, `stem`, `answer`, `explanation`, `perscore`, `sort_order`) VALUES
-(1, 1, 1, 'Java中，以下哪个区域是线程私有的？', 'A', '程序计数器是线程私有的', 5, 1),
-(2, 1, 2, '以下哪些属于JVM运行时数据区？', 'A,B,C', '方法区、堆、栈都是', 10, 2),
-(3, 1, 3, '垃圾回收可以完全避免内存泄漏。', '错误', '不能完全避免', 5, 3),
-(4, 1, 5, '请简述Java内存模型。', '略（主观题）', NULL, 20, 4),
-(5, 2, 1, 'CMS垃圾回收器采用的算法是？', 'B', 'CMS是标记-清除', 10, 1),
-(6, 2, 5, '请比较G1和ZGC的区别。', NULL, NULL, 30, 2),
-(7, 3, 1, '事务的ACID特性中，C代表什么？', 'C', 'Consistency 一致性', 5, 1),
-(8, 3, 4, 'SQL中用于提交事务的命令是______。', 'COMMIT', '', 5, 2),
-(9, 3, 5, '请解释乐观锁与悲观锁。', NULL, NULL, 20, 3);
-
--- 8. 客观题提交
-INSERT INTO `object_submit` (`id`, `assignment_id`, `question_id`, `user_id`, `object_score`, `answer_word`, `submit_time`) VALUES
-(1, 1, 1, 2, 5, 'A', NOW()),
-(2, 1, 2, 2, 10, 'A,B,C', NOW()),
-(3, 1, 3, 2, 0, '正确', NOW()),
-(4, 3, 7, 2, 5, 'C', NOW()),
-(5, 3, 8, 2, 5, 'COMMIT', NOW());
-
--- 9. 主观题提交
-INSERT INTO `subject_submit` (`id`, `assignment_id`, `user_id`, `question_id`, `answer_picture`, `subject_score`, `teacher_comment`, `finish_status`, `grading_status`, `finish_time`, `grading_time`) VALUES
-(1, 1, 2, 4, 'https://example.com/answer1.jpg', 18, '回答较完整，但缺少内存模型具体细节', 2, 2, NOW(), NOW()),
-(2, 2, 3, 6, 'https://example.com/answer2.jpg', NULL, NULL, 2, 1, NOW(), NULL),
-(3, 3, 2, 9, 'https://example.com/answer3.jpg', 15, '举例清晰，但可再补充适用场景', 2, 2, NOW(), NOW());
-
--- 10. 课堂签到
-INSERT INTO `class_check` (`id`, `class_id`, `user_id`, `check_status`, `checkin_time`) VALUES
-(1, 1, 2, 1, '2026-07-01 08:55:00'),
-(2, 1, 3, 2, '2026-07-01 09:15:00'),
-(3, 2, 2, 1, '2026-07-08 08:50:00'),
-(4, 2, 3, 3, NULL);
-
--- 11. 课堂投票
-INSERT INTO `class_vote` (`id`, `class_id`, `heading`, `options`, `correct_option`, `duration`, `status`, `created_at`, `ended_at`) VALUES
-(1, 1, 'Java中垃圾回收的触发时机？', '["A. 内存不足时", "B. 程序主动调用System.gc()", "C. 对象引用为null时", "D. 以上都是"]', 'D', 120, 'ended', NOW(), NOW()),
-(2, 2, '以下哪些是并发编程的常见问题？', '["A. 死锁", "B. 活锁", "C. 线程饥饿", "D. 以上都是"]', 'D', 90, 'active', NOW(), NULL);
-
--- 12. 投票记录
-INSERT INTO `vote_record` (`id`, `vote_id`, `user_id`, `selected_option`, `is_correct`, `submitted_at`) VALUES
-(1, 1, 2, 'D', 1, NOW()),
-(2, 1, 3, 'A', 0, NOW()),
-(3, 2, 2, 'D', 1, NOW());
-
--- 13. 课堂聊天
-INSERT INTO `class_chat` (`id`, `class_id`, `user_id`, `message_type`, `content`, `sent_time`) VALUES
-(1, 1, 2, 1, '老师，JVM调优有什么常用工具？', NOW()),
-(2, 1, 1, 1, '可以使用JVisualVM、Arthas等', NOW()),
-(3, 1, 3, 2, 'https://example.com/chat_image.png', NOW()),
-(4, 2, 2, 1, '今天讲GC吗？', NOW());
-
--- 14. 自习室记录
-INSERT INTO `study_room` (`id`, `user_id`, `goal`, `mode`, `focus_mode`, `plan_time`, `start_time`, `end_time`, `total_time`, `screen_switch_count`, `is_valid`, `created_at`) VALUES
-(1, 2, '复习JVM', 1, 0, NULL, '2026-07-01 08:00:00', '2026-07-01 10:30:00', 9000, 2, 1, NOW()),
-(2, 2, '刷题', 2, 0, 7200, '2026-07-02 19:00:00', '2026-07-02 20:30:00', 5400, 4, 0, NOW()),
-(3, 3, '学习数据库', 1, 0, NULL, '2026-07-03 14:00:00', '2026-07-03 16:00:00', 7200, 1, 1, NOW());
-
--- 15. 积分记录
-INSERT INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `left_points`, `source_type`, `change_time`) VALUES
-(1, 2, 1, 10, 50, 1, NOW()),
-(2, 2, 1, 5, 55, 2, NOW()),
-(3, 2, 2, 20, 35, 5, NOW()),
-(4, 3, 1, 10, 30, 1, NOW()),
-(5, 3, 1, 15, 45, 3, NOW());
-
--- 16. 花卉品种
-INSERT INTO `seed` (`id`, `variety`, `description`, `image`, `stage0_image`, `stage1_image`, `stage2_image`, `stage3_image`, `price`, `sunlight_max`, `water_max`, `nutrient_max`) VALUES
-(1, '向日葵', '向阳而生，充满活力的花朵', 'https://example.com/seeds/sunflower.png', 'https://example.com/plants/sunflower_0.png', 'https://example.com/plants/sunflower_1.png', 'https://example.com/plants/sunflower_2.png', 'https://example.com/plants/sunflower_3.png', 0, 100, 80, 60),
-(2, '玫瑰', '热情似火，经典浪漫之选', 'https://example.com/seeds/rose.png', 'https://example.com/plants/rose_0.png', 'https://example.com/plants/rose_1.png', 'https://example.com/plants/rose_2.png', 'https://example.com/plants/rose_3.png', 50, 90, 100, 70),
-(3, '仙人掌', '坚韧不拔，耐旱易养', 'https://example.com/seeds/cactus.png', 'https://example.com/plants/cactus_0.png', 'https://example.com/plants/cactus_1.png', 'https://example.com/plants/cactus_2.png', 'https://example.com/plants/cactus_3.png', 30, 60, 40, 50),
-(4, '樱花', '刹那芳华，绚烂而短暂', 'https://example.com/seeds/cherry.png', 'https://example.com/plants/cherry_0.png', 'https://example.com/plants/cherry_1.png', 'https://example.com/plants/cherry_2.png', 'https://example.com/plants/cherry_3.png', 80, 80, 90, 100);
-
--- 17. 花卉实例
-INSERT INTO `flower` (`id`, `user_id`, `seed_id`, `sunlight`, `water`, `nutrient`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
-(1, 2, 2, 77, 85, 60, 222, 3, 1, NOW(), NOW()),
-(2, 2, 1, 35, 28, 21, 84, 1, 0, NOW(), NOW()),
-(3, 3, 2, 56, 62, 43, 161, 2, 0, NOW(), NOW());
-
--- 18. 商店道具
-INSERT INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `attribute_type`, `boost_value`, `created_at`) VALUES
-(1, '有机肥料', 'https://example.com/fertilizer.png', 5, 2, 10, NOW()),
-(2, '纯净水', 'https://example.com/potion.png', 10, 3, 10, NOW()),
-(3, '阳光精华', 'https://example.com/seed.png', 8, 1, 10, NOW());
-
--- 19. 系统通知
-INSERT INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice_status`, `notice_type`, `push_time`) VALUES
-(1, 2, '作业批改通知', '您的第一次作业已批改，得分85', 1, 4, '2026-07-01 10:00:00'),
-(2, 2, '课堂提醒', '第二堂课将于7月8日开始，请准时参加', 0, 1, '2026-07-01 09:00:00'),
-(3, 3, '作业截止提醒', '您的第二次作业即将截止，请尽快提交', 0, 2, '2026-06-30 10:00:00'),
-(4, 2, '系统升级通知', '平台将于7月1日凌晨2:00-5:00进行系统升级', 0, 0, '2026-06-29 10:00:00'),
-(5, 2, '第三节上课提醒', '「Java高级编程」第三讲将于7月15日14:00开始', 0, 1, '2026-06-29 09:00:00'),
-(6, 3, '新作业发布', '第三次作业：并发编程练习已发布，截止日期7月20日', 0, 2, '2026-06-28 15:00:00'),
-(7, 2, '作业提交提醒', '李小明提交了第2章作业，等待批改', 0, 3, '2026-06-28 14:00:00'),
-(8, 3, '作业批改通知', '您的第二次作业已批改，得分92', 1, 4, '2026-06-28 11:00:00'),
-(9, 2, '课程通知', '暑期课程安排已更新，请查看最新课表', 0, 0, '2026-06-27 16:00:00'),
-(10, 3, '上课提醒', '「数据库系统原理」本周五课程取消', 0, 1, '2026-06-27 10:00:00');
-
--- 20. 学情分析
-INSERT INTO `student_analysis` (`id`, `user_id`, `total_study_duration`, `assignment_correct_rate`, `week_study_duration`, `updated_at`) VALUES
-(1, 2, 14400, 85.50, 3600, NOW()),
-(2, 3, 7200, 70.00, 1800, NOW());
-
--- 21. 敏感词
-INSERT INTO `sensitive_word` (`word`) VALUES
-('色情'), ('暴力'), ('赌博'), ('毒品'), ('政治敏感');
-
--- 22. 课程问题
-INSERT INTO `course_problem` (`id`, `course_id`, `user_id`, `title`, `content`, `reply_count`, `created_at`) VALUES
-(1, 1, 2, 'JVM堆内存调优参数', '请问-Xms和-Xmx设置多大比较合适？', 2, NOW()),
-(2, 1, 3, 'G1垃圾回收器的工作机制', 'G1相比CMS有什么优势？', 1, NOW()),
-(3, 2, 2, 'MySQL的隔离级别怎么选', 'Repeatable Read和Read Committed在实际项目中怎么选？', 0, NOW());
-
--- 23. 课程问题回复
-INSERT INTO `course_problem_reply` (`id`, `problem_id`, `user_id`, `content`, `created_at`) VALUES
-(1, 1, 1, '一般建议初始堆(-Xms)和最大堆(-Xmx)设为相同值，避免运行时动态调整。具体大小根据应用内存需求，通常设为系统内存的1/4到1/2。', NOW()),
-(2, 1, 3, '补充一下，如果机器内存较大（32G+），可以适当增大，但不要超过物理内存的70%。', NOW()),
-(3, 2, 1, 'G1的主要优势是可控的停顿时间(-XX:MaxGCPauseMillis)，适合大堆内存场景（6G+），并且会自动进行内存压缩，减少碎片。', NOW());
+INSERT IGNORE INTO `user` (`id`, `name`, `password`, `phone`, `bio`, `avatar`, `role`, `openid`, `status`, `ban_expire_time`, `ban_reason`, `created_at`, `updated_at`) VALUES (1,'张小明','654321','13800000001','资深Java讲师','https://oos.example.com/avatar/13.jpg',2,'wx_openid_001',1,NULL,NULL,'2026-06-28 13:10:15','2026-06-28 16:29:22'),(2,'我是','encrypted_pwd_2','13800000002','大三学生，热爱编程','https://example.com/avatar2.jpg',1,'wx_openid_002',1,NULL,NULL,'2026-06-28 13:10:15','2026-06-30 11:32:31'),(3,'王小红','encrypted_pwd_3','13800000003','大二学生，喜欢设计','13812345678',1,'wx_openid_003',1,NULL,NULL,'2026-06-28 13:10:15','2026-06-30 13:20:48'),(4,'admin','encrypted_pwd_4','13800000004','系统管理员','https://example.com/avatar4.jpg',3,NULL,1,NULL,NULL,'2026-06-28 13:10:15','2026-06-28 13:10:15'),(5,'李斯','encrypted_pwd_3','13800001234',NULL,NULL,1,NULL,1,NULL,NULL,'2026-06-28 15:13:29','2026-06-28 15:13:29'),(6,'我是微信用户','','13800001111',NULL,NULL,1,'mock_openid_0b3hTc00074jEW1oSe3007bJIy4hTc0A',1,NULL,NULL,'2026-06-28 15:56:42','2026-06-30 12:43:48'),(8,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0d3AQ80w3qxCj73zKi1w3imDDG1AQ80z',1,NULL,NULL,'2026-06-29 15:22:59','2026-06-29 15:22:59'),(9,'张三','encrypted_1','13812345678',NULL,NULL,1,'mock_openid_0b3b3HHa1LNu1M0Jz6Ha1o7que4b3HHK',1,NULL,NULL,'2026-06-30 11:35:30','2026-06-30 17:06:02'),(10,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0e3iCaGa1AMeYL0DJoFa1TDjiW3iCaGX',1,NULL,NULL,'2026-06-30 11:44:19','2026-06-30 11:44:19'),(11,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0d3sNEkl2BNZYh4vCpol2JEDh61sNEkR',1,NULL,NULL,'2026-06-30 11:44:46','2026-06-30 11:44:46'),(13,'张三','abc123','13812345670',NULL,NULL,1,NULL,1,NULL,NULL,'2026-06-30 13:40:57','2026-06-30 13:40:57'),(14,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0e3C6LFa12W1ZL0qfoFa11whEh1C6LFG',1,NULL,NULL,'2026-06-30 14:05:09','2026-06-30 14:05:09'),(15,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0b3vA4ll2LyXYh4D0Vnl2UYBEI3vA4lP',1,NULL,NULL,'2026-06-30 14:08:09','2026-06-30 14:08:09'),(16,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0f3XkuFa1CFiZL0AvGIa1g2bWj1XkuF8',1,NULL,NULL,'2026-06-30 14:09:44','2026-06-30 14:09:44'),(18,'微信用户1','',NULL,NULL,NULL,1,'mock_openid_0e3dZRGa1dA70M0YomFa1ogBgC4dZRGk',1,NULL,NULL,'2026-06-30 14:16:22','2026-06-30 14:17:22'),(19,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0a3zRLFa1Ei1ZL0Y91Ia1YbivK2zRLF8',1,NULL,NULL,'2026-06-30 14:17:33','2026-06-30 14:17:33'),(20,'微信用户1','',NULL,NULL,NULL,1,'mock_openid_0c3Nsi100caGFW1VS8400YX7Uk1Nsi1j',1,NULL,NULL,'2026-06-30 14:29:54','2026-06-30 14:30:08'),(21,'微信用户1','',NULL,NULL,NULL,1,'mock_openid_0e35fp0w3yfCj737T00w3C5Xz815fp0U',1,NULL,NULL,'2026-06-30 14:30:23','2026-06-30 14:30:51'),(22,'何彦星','',NULL,NULL,NULL,1,'mock_openid_0b30QkGa1WprYL09eCGa1NVtCQ30QkGM',1,NULL,NULL,'2026-06-30 14:31:56','2026-06-30 15:24:09'),(23,'微信用户','',NULL,NULL,NULL,1,'mock_openid_the code is a mock one',1,NULL,NULL,'2026-06-30 15:39:39','2026-06-30 15:39:39'),(24,'韦敏睿','12345678w','18260933155',NULL,NULL,1,NULL,1,NULL,NULL,'2026-06-30 16:33:00','2026-06-30 16:33:00'),(25,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0a3kcXFa15HIYL0NtRHa1EEZ4H2kcXFa',1,NULL,NULL,'2026-06-30 17:23:27','2026-06-30 17:23:27'),(26,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0c3WIJ200N6bHW1ucB000m6vsu2WIJ2E',1,NULL,NULL,'2026-07-01 14:53:50','2026-07-01 14:53:50'),(27,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0f3eUzHa1DOL1M0QYWFa1F3aJZ3eUzHZ',1,NULL,NULL,'2026-07-01 16:15:32','2026-07-01 16:15:32'),(28,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0c303XFa1ng00M0KWYHa1DalhW303XFy',1,NULL,NULL,'2026-07-01 16:39:05','2026-07-01 16:39:05');
+INSERT IGNORE INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `created_at`, `updated_at`, `audit_status`, `audit_remark`, `audit_time`) VALUES (1,1,'Java高级编程','深入理解Java虚拟机、并发编程','https://example.com/course1.jpg',2,'JAVA2026','active','2026-06-28 13:10:15','2026-06-28 13:10:15',0,'',NULL),(2,1,'数据库系统原理','MySQL、事务、索引优化','https://example.com/course2.jpg',2,'DB2026','active','2026-06-28 13:10:15','2026-06-30 16:53:47',1,'',NULL);
+INSERT IGNORE INTO `course_student` (`id`, `course_id`, `user_id`, `joined_at`) VALUES (1,1,2,'2026-06-28 13:10:15'),(2,1,3,'2026-06-28 13:10:15'),(3,2,2,'2026-06-28 13:10:15'),(4,2,24,'2026-06-30 16:54:00');
+INSERT IGNORE INTO `course_review` (`id`, `course_id`, `user_id`, `star`, `review_content`, `likecount`, `review_create_time`) VALUES (1,1,2,5,'讲得很清晰，受益匪浅！',3,'2026-06-28 13:10:16'),(2,1,3,4,'内容充实，但语速稍快',1,'2026-06-28 13:10:16');
+INSERT IGNORE INTO `class` (`id`, `course_id`, `user_id`, `class_title`, `file_url`, `start_time`, `end_time`, `status`, `create_time`) VALUES (1,1,1,'第一讲：JVM内存模型','https://example.com/ppt1.pptx','2026-07-01 09:00:00','2026-07-01 11:00:00','ended','2026-06-29 15:07:22'),(2,1,1,'第二讲：垃圾回收机制','https://example.com/ppt2.pptx','2026-07-08 09:00:00','2026-07-08 11:00:00','active','2026-06-29 15:07:22'),(3,2,1,'第一讲：事务隔离级别',NULL,'2026-06-20 14:00:00','2026-06-20 16:00:00','ended','2026-06-29 15:07:22');
+INSERT IGNORE INTO `assignment` (`id`, `course_id`, `assignment_title`, `deadline`, `max_score`, `student_status`, `assignment_create_time`, `updated_at`) VALUES (1,1,'第一次作业：JVM内存划分','2026-07-05 23:59:59',100,'SUBMITTED','2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,1,'第二次作业：垃圾回收算法','2026-07-15 23:59:59',100,'PENDING','2026-06-28 13:10:16','2026-06-28 13:10:16'),(3,2,'数据库事务练习','2026-07-25 23:59:59',50,'OVERDUE','2026-06-28 13:10:16','2026-07-01 16:35:41');
+INSERT IGNORE INTO `question` (`id`, `assignment_id`, `type`, `stem`, `answer`, `explanation`, `perscore`, `sort_order`) VALUES (1,1,1,'Java中，以下哪个区域是线程私有的？','A','程序计数器是线程私有的',5,1),(2,1,2,'以下哪些属于JVM运行时数据区？','A,B,C','方法区、堆、栈都是',10,2),(3,1,3,'垃圾回收可以完全避免内存泄漏。','错误','不能完全避免',5,3),(4,1,5,'请简述Java内存模型。','略（主观题）',NULL,20,4),(5,2,1,'CMS垃圾回收器采用的算法是？','B','CMS是标记-清除',10,1),(6,2,5,'请比较G1和ZGC的区别。',NULL,NULL,30,2),(7,3,1,'事务的ACID特性中，C代表什么？','C','Consistency 一致性',5,1),(8,3,4,'SQL中用于提交事务的命令是______。','COMMIT','',5,2),(9,3,5,'请解释乐观锁与悲观锁。',NULL,NULL,20,3);
+INSERT IGNORE INTO `object_submit` (`id`, `assignment_id`, `question_id`, `user_id`, `object_score`, `answer_word`, `submit_time`) VALUES (1,1,1,2,5,'A','2026-06-28 13:10:16'),(2,1,2,2,10,'A,B,C','2026-06-28 13:10:16'),(3,1,3,2,0,'正确','2026-06-28 13:10:16'),(4,3,7,2,5,'C','2026-06-28 13:10:16'),(5,3,8,2,5,'COMMIT','2026-06-28 13:10:16');
+INSERT IGNORE INTO `subject_submit` (`id`, `assignment_id`, `user_id`, `question_id`, `answer_picture`, `subject_score`, `teacher_comment`, `finish_status`, `grading_status`, `finish_time`, `grading_time`) VALUES (1,1,2,4,'https://example.com/answer1.jpg',18,'回答较完整，但缺少内存模型具体细节',2,2,'2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,2,3,6,'https://example.com/answer2.jpg',NULL,NULL,2,1,'2026-06-28 13:10:16',NULL),(3,3,2,9,'https://example.com/answer3.jpg',15,'举例清晰，但可再补充适用场景',2,2,'2026-06-28 13:10:16','2026-06-28 13:10:16');
+INSERT IGNORE INTO `class_check` (`id`, `class_id`, `user_id`, `check_status`, `checkin_time`) VALUES (1,1,2,1,'2026-07-01 08:55:00'),(2,1,3,2,'2026-07-01 09:15:00'),(3,2,2,1,'2026-07-08 08:50:00'),(4,2,3,3,NULL);
+INSERT IGNORE INTO `class_vote` (`id`, `class_id`, `heading`, `options`, `correct_option`, `duration`, `status`, `created_at`, `ended_at`) VALUES (1,1,'Java中垃圾回收的触发时机？','[\"A. 内存不足时\", \"B. 程序主动调用System.gc()\", \"C. 对象引用为null时\", \"D. 以上都是\"]','D',120,'ended','2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,2,'以下哪些是并发编程的常见问题？','[\"A. 死锁\", \"B. 活锁\", \"C. 线程饥饿\", \"D. 以上都是\"]','D',90,'active','2026-06-28 13:10:16',NULL);
+INSERT IGNORE INTO `vote_record` (`id`, `vote_id`, `user_id`, `selected_option`, `is_correct`, `submitted_at`) VALUES (1,1,2,'D',1,'2026-06-28 13:10:16'),(2,1,3,'A',0,'2026-06-28 13:10:16'),(3,2,2,'D',1,'2026-06-28 13:10:16');
+INSERT IGNORE INTO `class_chat` (`id`, `class_id`, `user_id`, `message_type`, `content`, `sent_time`) VALUES (1,1,2,1,'老师，JVM调优有什么常用工具？','2026-06-28 13:10:16'),(2,1,1,1,'可以使用JVisualVM、Arthas等','2026-06-28 13:10:16'),(3,1,3,2,'https://example.com/chat_image.png','2026-06-28 13:10:16'),(4,2,2,1,'今天讲GC吗？','2026-06-28 13:10:16');
+INSERT IGNORE INTO `study_room` (`id`, `user_id`, `goal`, `mode`, `focus_mode`, `plan_time`, `start_time`, `end_time`, `total_time`, `screen_switch_count`, `is_valid`, `created_at`) VALUES (1,2,NULL,1,0,NULL,'2026-07-01 08:00:00','2026-07-01 10:30:00',9000,2,1,'2026-06-28 13:10:16'),(2,2,NULL,2,0,7200,'2026-07-02 19:00:00','2026-07-02 20:30:00',5400,4,0,'2026-06-28 13:10:16'),(3,3,NULL,1,0,NULL,'2026-07-03 14:00:00','2026-07-03 16:00:00',7200,1,1,'2026-06-28 13:10:16'),(4,2,NULL,1,0,NULL,'2026-06-29 10:27:08','2026-06-29 10:44:16',1028,2,1,'2026-06-29 10:27:08'),(5,1,NULL,1,0,NULL,'2026-06-29 10:28:55',NULL,NULL,0,1,'2026-06-29 10:28:55'),(6,2,'刷LeetCode',2,1,3600,'2026-07-05 20:00:00','2026-07-05 20:15:00',900,1,1,'2026-06-30 10:33:28'),(7,2,'复习JVM第四章',1,0,NULL,'2026-07-04 09:00:00','2026-07-04 11:00:00',7200,1,1,'2026-06-30 10:33:28'),(10,2,'完成第三章作业',1,1,NULL,'2026-07-04 14:00:00','2026-07-04 14:15:00',900,0,1,'2026-06-30 10:33:28'),(11,2,'完成第三章作业',1,0,NULL,'2026-06-30 11:14:56','2026-06-30 11:15:37',40,2,1,'2026-06-30 11:14:56'),(12,2,'完成第三章作业',1,0,NULL,'2026-06-30 11:16:43','2026-06-30 11:16:59',15,2,1,'2026-06-30 11:16:43'),(13,2,'完成第三章作业',1,0,NULL,'2026-06-30 14:42:31',NULL,NULL,0,1,'2026-06-30 14:42:31');
+INSERT IGNORE INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `left_points`, `source_type`, `change_time`) VALUES (1,2,1,10,50,1,'2026-06-28 13:10:16'),(2,2,1,5,55,2,'2026-06-28 13:10:16'),(3,2,2,20,35,5,'2026-06-28 13:10:16'),(4,3,1,10,30,1,'2026-06-28 13:10:16'),(5,3,1,15,45,3,'2026-06-28 13:10:16'),(8,2,2,15,20,5,'2026-06-29 11:17:07'),(13,3,2,5,40,5,'2026-07-01 15:30:04'),(14,3,2,5,35,5,'2026-07-01 15:30:18'),(15,3,2,5,30,5,'2026-07-01 15:30:19'),(16,3,2,5,25,5,'2026-07-01 15:30:21'),(17,3,2,5,20,5,'2026-07-01 15:30:22'),(18,3,2,5,15,5,'2026-07-01 15:30:24'),(19,3,2,5,10,5,'2026-07-01 15:30:25'),(20,3,2,5,5,5,'2026-07-01 15:30:26'),(21,3,2,5,190,5,'2026-07-01 15:30:28'),(22,3,2,100,90,5,'2026-07-01 15:32:37'),(23,24,1,99999,99999,NULL,'2026-07-01 16:22:22'),(25,24,2,5,99994,5,'2026-07-01 16:22:54'),(26,24,2,5,99994,5,'2026-07-01 16:22:54'),(27,24,2,10,99984,5,'2026-07-01 16:22:59'),(28,24,2,10,99984,5,'2026-07-01 16:22:59'),(29,24,2,10,99984,5,'2026-07-01 16:22:59'),(30,24,2,8,99976,5,'2026-07-01 16:23:03'),(31,24,2,8,99976,5,'2026-07-01 16:23:03'),(32,24,2,10,99966,5,'2026-07-01 16:41:57'),(33,24,2,8,99958,5,'2026-07-01 16:41:58');
+INSERT IGNORE INTO `seed` (`id`, `variety`, `description`, `image`, `stage0_image`, `stage1_image`, `stage2_image`, `stage3_image`, `price`, `sunlight_max`, `water_max`, `nutrient_max`, `created_at`, `is_deleted`) VALUES (1,'改品种名','改描述','改图片',NULL,NULL,NULL,NULL,100,100,80,60,'2026-06-29 18:29:18',0),(2,'non commodo','交立式写里到。马第样当格划受装建百。报了属主这史能改给。识众象三原行石。低七大却身现委则。','https://loremflickr.com/400/400?lock=7565639728464798',NULL,NULL,NULL,NULL,701,86,81,92,'2026-06-29 18:29:18',1),(3,'仙人掌','坚韧不拔，耐旱易养','https://example.com/seeds/cactus.png',NULL,NULL,NULL,NULL,30,60,40,50,'2026-06-29 18:29:18',0),(4,'樱花','刹那芳华，绚烂而短暂','https://example.com/seeds/cherry.png',NULL,NULL,NULL,NULL,80,80,90,100,'2026-06-29 18:29:18',0),(5,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:24:38',0),(6,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:45:51',0),(7,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:46:35',0),(8,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:46:46',0),(9,'兰','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,80,60,'2026-07-01 15:45:25',0);
+INSERT IGNORE INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `attribute_type`, `boost_value`, `created_at`) VALUES (1,'有机肥料','https://example.com/fertilizer.png',5,2,10,'2026-07-01 15:18:34'),(2,'纯净水','https://example.com/potion.png',10,3,10,'2026-07-01 15:18:34'),(3,'阳光精华','https://example.com/seed.png',8,1,10,'2026-07-01 15:18:34');
+INSERT IGNORE INTO `flower` (`id`, `user_id`, `seed_id`, `sunlight`, `water`, `nutrient`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES (1,2,2,0,0,0,0,3,1,'2026-06-28 13:10:16','2026-07-01 15:29:33'),(2,2,1,0,0,0,0,1,0,'2026-06-28 13:10:16','2026-07-01 15:29:33'),(3,3,2,90,100,70,90,1,0,'2026-06-28 13:10:16','2026-07-01 15:31:47'),(4,6,1,0,0,0,0,0,0,'2026-06-29 22:56:34','2026-06-29 22:56:34'),(5,3,1,0,0,0,0,0,0,'2026-07-01 15:32:37','2026-07-01 15:32:37'),(6,24,1,20,10,20,50,0,0,'2026-07-01 16:22:39','2026-07-01 16:41:58');
+INSERT IGNORE INTO `student_analysis` (`id`, `user_id`, `total_study_duration`, `assignment_correct_rate`, `week_study_duration`, `updated_at`) VALUES (1,2,14455,85.50,55,'2026-06-30 11:16:59'),(2,3,7200,70.00,1800,'2026-06-28 13:10:16');
+INSERT IGNORE INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice_status`, `notice_type`, `push_time`) VALUES (1,2,'作业批改通知','您的第一次作业已批改，得分85',1,4,'2026-06-28 13:10:16'),(2,2,'课堂提醒','第二堂课将于7月8日开始，请准时参加',1,1,'2026-06-28 13:10:16'),(3,3,'作业截止提醒','您的第二次作业即将截止，请尽快提交',0,2,'2026-06-28 13:10:16'),(4,2,'系统升级通知','平台将于7月1日凌晨2:00-5:00进行系统升级',1,0,'2026-06-29 10:00:00'),(5,2,'第三节上课提醒','「Java高级编程」第三讲将于7月15日14:00开始',1,1,'2026-06-29 09:00:00'),(6,3,'新作业发布','第三次作业：并发编程练习已发布，截止日期7月20日',0,2,'2026-06-28 15:00:00'),(7,2,'作业提交提醒','李小明提交了第2章作业，等待批改',1,3,'2026-06-28 14:00:00'),(8,3,'作业批改通知','您的第二次作业已批改，得分92',1,4,'2026-06-28 11:00:00'),(9,2,'课程通知','暑期课程安排已更新，请查看最新课表',1,0,'2026-06-27 16:00:00'),(10,3,'上课提醒','「数据库系统原理」本周五课程取消',0,1,'2026-06-27 10:00:00'),(11,26,'notice1','balilallal',1,1,'2026-07-01 14:32:19'),(12,26,'notice2','2222222',1,2,'2026-07-01 14:33:08');
