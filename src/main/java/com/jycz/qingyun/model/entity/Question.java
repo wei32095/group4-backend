@@ -25,4 +25,6 @@ public class Question {
     private Integer perscore;
 
     private Integer sortOrder;
+
+    private String imageUrl;
 }
