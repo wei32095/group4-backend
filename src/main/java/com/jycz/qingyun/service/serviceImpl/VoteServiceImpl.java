@@ -99,7 +99,7 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(404, "投票不存在");
         }
 
-        if (LocalDateTime.now().isAfter(vote.getEndedAt())) {
+        if (vote.getEndedAt() != null && LocalDateTime.now().isAfter(vote.getEndedAt())) {
             throw new BusinessException(400, "投票已结束");
         }
 
@@ -135,6 +135,7 @@ public class VoteServiceImpl implements VoteService {
                 .voteId(request.getVoteId())
                 .selectedOption(request.getSelectedOption())
                 .isCorrect(isCorrect)
+                .correctOption(vote.getCorrectOption())
                 .build();
     }
 
