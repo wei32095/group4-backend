@@ -17,7 +17,7 @@ public class AssignmentSubmitRequest {
     @Data
     public static class AnswerRequest {
         @NotNull(message = "题目ID不能为空")
-        private Long questionId;
+        private Integer sortOrder;
 
         private String answer;
     }

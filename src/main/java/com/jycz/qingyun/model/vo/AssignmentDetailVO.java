@@ -24,7 +24,7 @@ public class AssignmentDetailVO {
     @Data
     @Builder
     public static class QuestionDetailVO {
-        private Long questionId;
+        private Integer sortOrd;
         private Integer type;
         private String stem;
         private List<String> options;
