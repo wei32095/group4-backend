@@ -203,7 +203,7 @@ public class VoteServiceImpl implements VoteService {
                 .build();
     }
 
-    // ========== 新增：获取当前所有活跃投票 ==========
+    // ========== 获取课堂全部投票列表 ==========
     @Override
     public List<VoteActiveListVO> getActiveVoteList(Long classId, Long studentId) {
         // 1. 查询课堂是否存在
@@ -220,11 +220,9 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(403, "您未加入该课程");
         }
 
-        // 3. 查询所有活跃投票（status = active，且未过期）
+        // 3. 查询该课堂全部投票（按时间倒序）
         LambdaQueryWrapper<ClassVote> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ClassVote::getClassId, classId)
-                .eq(ClassVote::getStatus, "active")
-                .gt(ClassVote::getEndedAt, LocalDateTime.now())
                 .orderByDesc(ClassVote::getCreatedAt);
         List<ClassVote> votes = classVoteMapper.selectList(wrapper);
 
