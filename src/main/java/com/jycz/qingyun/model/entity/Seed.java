@@ -11,13 +11,15 @@ public class Seed {
     private Long id;
     private String variety;
     private String description;
-    private Integer maxGrowth;
     private String image;
     private String stage0Image;
     private String stage1Image;
     private String stage2Image;
     private String stage3Image;
     private Integer price;
+    private Integer sunlightMax;
+    private Integer waterMax;
+    private Integer nutrientMax;
     private Integer isDeleted;
     private LocalDateTime createdAt;
 }

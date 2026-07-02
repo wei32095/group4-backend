@@ -11,6 +11,9 @@ public class Flower {
     private Long id;
     private Long userId;
     private Long seedId;
+    private Integer sunlight;
+    private Integer water;
+    private Integer nutrient;
     private Integer growthValue;
     private Integer stage;
     private Integer isUnlocked;

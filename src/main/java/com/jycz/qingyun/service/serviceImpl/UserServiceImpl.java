@@ -1,7 +1,12 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jycz.qingyun.mapper.ClassCheckMapper;
+import com.jycz.qingyun.mapper.CourseMapper;
 import com.jycz.qingyun.mapper.PointsRecordMapper;
+import com.jycz.qingyun.mapper.StudyRoomMapper;
 import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.BindPhoneRequest;
@@ -11,6 +16,9 @@ import com.jycz.qingyun.model.dto.MpLoginRequest;
 import com.jycz.qingyun.model.dto.PasswordUpdateRequest;
 import com.jycz.qingyun.model.dto.RegisterRequest;
 import com.jycz.qingyun.model.dto.VerifyCodeLoginRequest;
+import com.jycz.qingyun.model.vo.AdminDashboardVO;
+import com.jycz.qingyun.model.vo.AdminUserListVO;
+import com.jycz.qingyun.model.vo.AdminUserVO;
 import com.jycz.qingyun.service.VerifyCodeService;
 import com.jycz.qingyun.utils.BusinessException;
 import com.jycz.qingyun.utils.JwtUtil;
@@ -19,6 +27,9 @@ import com.jycz.qingyun.model.entity.User;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
 import com.jycz.qingyun.service.UserService;
 import com.jycz.qingyun.model.vo.LoginVO;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +59,15 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private VerifyCodeService verifyCodeService;
+
+    @Autowired
+    private CourseMapper courseMapper;
+
+    @Autowired
+    private StudyRoomMapper studyRoomMapper;
+
+    @Autowired
+    private ClassCheckMapper classCheckMapper;
 
     @Override
     public ApiResult<LoginVO> login(LoginRequest request) {
@@ -420,6 +440,85 @@ public class UserServiceImpl implements UserService {
 
         // 5. 更新数据库
         userMapper.updateById(targetUser);
+    }
+
+    @Override
+    public AdminUserListVO getAdminUserList(Integer pageNum, Integer pageSize) {
+        // 1. 分页查询用户
+        Page<User> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
+                .orderByDesc(User::getCreatedAt);
+        IPage<User> userPage = userMapper.selectPage(page, wrapper);
+
+        // 2. 转换 VO
+        List<AdminUserVO> records = new ArrayList<>();
+        for (User user : userPage.getRecords()) {
+            AdminUserVO vo = new AdminUserVO();
+            vo.setId(user.getId());
+            vo.setName(user.getName());
+            vo.setPhone(user.getPhone());
+            vo.setAvatar(user.getAvatar());
+            vo.setBio(user.getBio());
+            vo.setRole(user.getRole());
+            vo.setStatus(user.getStatus());
+            vo.setBanExpireTime(user.getBanExpireTime());
+            vo.setBanReason(user.getBanReason());
+            vo.setCreatedAt(user.getCreatedAt());
+            vo.setUpdatedAt(user.getUpdatedAt());
+
+            // 查询积分
+            Integer points = pointsRecordMapper.getLatestPoints(user.getId());
+            vo.setPoints(points != null ? points : 0);
+
+            records.add(vo);
+        }
+
+        // 3. 组装分页结果
+        AdminUserListVO result = new AdminUserListVO();
+        result.setRecords(records);
+        result.setTotal(userPage.getTotal());
+        result.setPageNum(pageNum);
+        result.setPageSize(pageSize);
+        result.setPages((int) userPage.getPages());
+        return result;
+    }
+
+    @Override
+    public AdminDashboardVO getDashboard() {
+        // 时间边界
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        LocalDateTime weekStart = now.with(java.time.DayOfWeek.MONDAY).toLocalDate().atStartOfDay();
+        LocalDateTime monthStart = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+
+        // 用户统计
+        AdminDashboardVO.UserStats userStats = new AdminDashboardVO.UserStats();
+        userStats.setTotalUsers(userMapper.selectCount(null));
+        userStats.setNewUsersToday(userMapper.selectCount(
+                new LambdaQueryWrapper<User>().ge(User::getCreatedAt, todayStart)));
+        userStats.setNewUsersWeek(userMapper.selectCount(
+                new LambdaQueryWrapper<User>().ge(User::getCreatedAt, weekStart)));
+        userStats.setNewUsersMonth(userMapper.selectCount(
+                new LambdaQueryWrapper<User>().ge(User::getCreatedAt, monthStart)));
+
+        // 课程统计
+        AdminDashboardVO.CourseStats courseStats = new AdminDashboardVO.CourseStats();
+        courseStats.setTotalCourses(courseMapper.countTotal());
+        courseStats.setPendingCourses(courseMapper.countPending());
+        courseStats.setActiveCourses(courseMapper.countActive());
+
+        // 今日活跃
+        AdminDashboardVO.TodayActivity todayActivity = new AdminDashboardVO.TodayActivity();
+        todayActivity.setStudyUsers(studyRoomMapper.countDistinctUsersSince(todayStart));
+        todayActivity.setCheckins(classCheckMapper.countSince(todayStart));
+        todayActivity.setActiveUsers(studyRoomMapper.countActiveUsersSince(todayStart));
+
+        // 组装
+        AdminDashboardVO vo = new AdminDashboardVO();
+        vo.setUserStats(userStats);
+        vo.setCourseStats(courseStats);
+        vo.setTodayActivity(todayActivity);
+        return vo;
     }
 
 }

@@ -2,6 +2,8 @@ package com.jycz.qingyun.service;
 
 import com.jycz.qingyun.model.dto.*;
 import com.jycz.qingyun.model.vo.LoginVO;
+import com.jycz.qingyun.model.vo.AdminDashboardVO;
+import com.jycz.qingyun.model.vo.AdminUserListVO;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
 
 public interface UserService {
@@ -46,4 +48,14 @@ public interface UserService {
      */
     ApiResult<Boolean> updatePassword(Long userId, PasswordUpdateRequest request);
     void banUser(BanUserRequest request, Long adminId);
+
+    /**
+     * 管理员查看用户列表（分页）
+     */
+    AdminUserListVO getAdminUserList(Integer pageNum, Integer pageSize);
+
+    /**
+     * 管理员看板数据
+     */
+    AdminDashboardVO getDashboard();
 }

@@ -36,3 +36,4 @@ build/
 ### 本地配置（含密钥） ###
 /src/main/resources/application.yml
 /docs/project-features.md
+/CLAUDE.md
