@@ -46,5 +46,7 @@ public class AssignmentCreateRequest {
         private Integer perscore;
 
         private Integer sortOrder;
+
+        private String imageUrl;
     }
 }

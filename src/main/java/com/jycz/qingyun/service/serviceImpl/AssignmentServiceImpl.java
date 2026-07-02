@@ -84,6 +84,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             question.setExplanation(qr.getExplanation());
             question.setPerscore(qr.getPerscore());
             question.setSortOrder(sortOrder++);
+            question.setImageUrl(qr.getImageUrl());
             questionMapper.insert(question);
         }
 
@@ -241,6 +242,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                             .stem(q.getStem())
                             .perscore(q.getPerscore())
                             .sortOrder(q.getSortOrder())
+                            .imageUrl(q.getImageUrl())
                             .explanation(q.getExplanation())
                             .options(optionsList);  // ← 使用解析出来的选项
 
