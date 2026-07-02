@@ -16,6 +16,8 @@ public class Question {
 
     private String stem;
 
+    private String options;
+
     private String answer;
 
     private String explanation;

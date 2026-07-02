@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -70,6 +70,16 @@ public class AssignmentServiceImpl implements AssignmentService {
             question.setAssignmentId(assignment.getId());
             question.setType(qr.getType());
             question.setStem(qr.getStem());
+
+            if (qr.getOptions() != null && !qr.getOptions().isEmpty()) {
+                try {
+                    String optionsJson = objectMapper.writeValueAsString(qr.getOptions());
+                    question.setOptions(optionsJson);
+                } catch (Exception e) {
+                    throw new BusinessException(500, "选项格式错误");
+                }
+            }
+
             question.setAnswer(qr.getAnswer());
             question.setExplanation(qr.getExplanation());
             question.setPerscore(qr.getPerscore());
@@ -151,7 +161,8 @@ public class AssignmentServiceImpl implements AssignmentService {
                     totalScore += os.getObjectScore() != null ? os.getObjectScore() : 0;
                 }
 
-                if (allGraded && !subjectSubmits.isEmpty()) {
+                // ✅ 修改：只要所有提交都已批改（没有待批改的主观题），就显示 GRADED
+                if (allGraded) {
                     status = "GRADED";
                     myScore = totalScore;
                 } else {
@@ -170,7 +181,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             result.add(AssignmentStudentListVO.builder()
                     .assignmentId(assignment.getId())
                     .courseId(assignment.getCourseId())
-                    .courseName(courseName)           // ← 新增
+                    .courseName(courseName)
                     .assignmentTitle(assignment.getAssignmentTitle())
                     .deadline(assignment.getDeadline())
                     .maxScore(assignment.getMaxScore())
@@ -209,6 +220,20 @@ public class AssignmentServiceImpl implements AssignmentService {
         boolean allGraded = true;
 
         for (Question q : questions) {
+            // ========== 新增：解析 options ==========
+            List<String> optionsList = new ArrayList<>();
+            if (q.getType() == 1 || q.getType() == 2) {
+                if (q.getOptions() != null && !q.getOptions().isEmpty()) {
+                    try {
+                        optionsList = objectMapper.readValue(q.getOptions(), new TypeReference<List<String>>() {});
+                    } catch (Exception e) {
+                        log.warn("解析选项失败: {}", e.getMessage());
+                        optionsList = new ArrayList<>();
+                    }
+                }
+            }
+            // ========== 新增结束 ==========
+
             AssignmentDetailVO.QuestionDetailVO.QuestionDetailVOBuilder builder =
                     AssignmentDetailVO.QuestionDetailVO.builder()
                             .questionId(q.getId())
@@ -216,11 +241,8 @@ public class AssignmentServiceImpl implements AssignmentService {
                             .stem(q.getStem())
                             .perscore(q.getPerscore())
                             .sortOrder(q.getSortOrder())
-                            .explanation(q.getExplanation());
-
-            if (q.getType() == 1 || q.getType() == 2) {
-                builder.options(new ArrayList<>());
-            }
+                            .explanation(q.getExplanation())
+                            .options(optionsList);  // ← 使用解析出来的选项
 
             if (q.getType() != 5) {
                 ObjectSubmit os = objectSubmitMap.get(q.getId());
