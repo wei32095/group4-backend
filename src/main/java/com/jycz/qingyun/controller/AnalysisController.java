@@ -1,25 +1,38 @@
 package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
-import com.jycz.qingyun.model.vo.AnalysisReportVO;
+import com.jycz.qingyun.model.vo.StudentAnalysisVO;
 import com.jycz.qingyun.service.AnalysisService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/qingyun/analysis")
+@RequiredArgsConstructor
 public class AnalysisController {
 
-    @Autowired
-    private AnalysisService analysisService;
+    private final AnalysisService analysisService;
 
-    @GetMapping("/report")
-    public ApiResult<AnalysisReportVO> getReport(HttpServletRequest httpRequest) {
+    /**
+     * 学生学情分析
+     * GET /qingyun/analysis/student?periodType=week
+     */
+    @GetMapping("/student")
+    public ApiResult<StudentAnalysisVO> getStudentAnalysis(
+            @RequestParam(defaultValue = "week") String periodType,
+            HttpServletRequest httpRequest) {
+
         Long userId = (Long) httpRequest.getAttribute("userId");
-        AnalysisReportVO vo = analysisService.getReport(userId);
-        return ApiResult.success(vo);
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 1) {
+            return ApiResult.error(403, "仅学生可查看学情分析");
+        }
+
+        StudentAnalysisVO response = analysisService.getStudentAnalysis(userId, periodType);
+        return ApiResult.success(response);
     }
 }

@@ -1,8 +1,9 @@
 package com.jycz.qingyun.service;
 
-import com.jycz.qingyun.model.vo.AnalysisReportVO;
+import com.jycz.qingyun.model.vo.StudentAnalysisVO;
 
 public interface AnalysisService {
-    AnalysisReportVO getReport(Long userId);
-    void addStudyDuration(Long userId, int durationSeconds);
+
+    StudentAnalysisVO getStudentAnalysis(Long userId, String periodType);
+
 }

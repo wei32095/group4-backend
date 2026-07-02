@@ -13,6 +13,7 @@ import com.jycz.qingyun.model.vo.StudyRoomStatisticVO;
 import com.jycz.qingyun.model.vo.StudyRoomVO;
 import com.jycz.qingyun.service.AnalysisService;
 import com.jycz.qingyun.service.PointsRecordService;
+import com.jycz.qingyun.service.StudentAnalysisService;
 import com.jycz.qingyun.service.StudyRoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class StudyRoomServiceImpl implements StudyRoomService {
     private StudyRoomMapper studyRoomMapper;
 
     @Autowired
-    private AnalysisService analysisService;
+    private StudentAnalysisService studentAnalysisService;
 
     @Autowired
     private PointsRecordService pointsRecordService;
@@ -138,7 +139,7 @@ public class StudyRoomServiceImpl implements StudyRoomService {
 
         // 8. 更新学情分析 + 加积分（只有有效的自习）
         if (isValid == 1) {
-            analysisService.addStudyDuration(userId, (int) totalTime);
+            studentAnalysisService.addStudyDuration(userId, (int) totalTime);
             pointsRecordService.addPoints(userId, 5, 4);
         }
 
