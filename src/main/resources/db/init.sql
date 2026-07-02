@@ -19,6 +19,7 @@ CREATE TABLE `user` (
     `role` TINYINT DEFAULT '1' COMMENT '角色：1-学生，2-教师，3-管理员',
     `openid` VARCHAR(100) DEFAULT NULL COMMENT '微信标识',
     `status` TINYINT DEFAULT '1' COMMENT '状态：1-正常，0-禁用',
+    `points` INT DEFAULT '0' COMMENT '当前积分余额',
     `ban_expire_time` DATETIME DEFAULT NULL COMMENT '封禁到期时间',
     `ban_reason` VARCHAR(255) DEFAULT NULL COMMENT '封禁原因',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
