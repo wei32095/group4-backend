@@ -528,12 +528,24 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 启动时自动迁移存量明文密码 → BCrypt 加密
-     * 检测所有密码，如果不是 BCrypt 格式（不以 $2a$/$2b$/$2y$ 开头），
-     * 则视为明文，用 BCrypt 加密后更新。
+     * 先检测是否还有明文密码存在，没有则跳过全表扫描。
      * 幂等：多次运行不会重复处理已加密的密码。
      */
     @PostConstruct
     public void migratePlaintextPasswords() {
+        // 先快速检测是否存在明文密码（不以 $2 开头的密码）
+        Long plaintextCount = userMapper.selectCount(
+                new LambdaQueryWrapper<User>()
+                        .isNotNull(User::getPassword)
+                        .ne(User::getPassword, "")
+                        .apply("password NOT LIKE '$2%'")
+        );
+        if (plaintextCount == null || plaintextCount == 0) {
+            log.info("密码迁移：无需迁移，所有密码均已加密");
+            return;
+        }
+
+        log.info("密码迁移：发现 {} 个用户使用明文密码，开始迁移", plaintextCount);
         List<User> allUsers = userMapper.selectList(null);
         int migrated = 0;
         for (User user : allUsers) {
@@ -551,11 +563,7 @@ public class UserServiceImpl implements UserService {
             migrated++;
             log.info("密码迁移: userId={}, 已加密", user.getId());
         }
-        if (migrated > 0) {
-            log.info("密码迁移完成：共迁移 {} 个用户", migrated);
-        } else {
-            log.info("密码迁移：无需迁移，所有密码均已加密");
-        }
+        log.info("密码迁移完成：共迁移 {} 个用户", migrated);
     }
 
 }

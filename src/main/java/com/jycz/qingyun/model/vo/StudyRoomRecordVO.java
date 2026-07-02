@@ -13,7 +13,5 @@ public class StudyRoomRecordVO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Integer totalTime;
-    private Integer screenSwitchCount;
     private Integer planTime;
-    private Integer isValid;
 }

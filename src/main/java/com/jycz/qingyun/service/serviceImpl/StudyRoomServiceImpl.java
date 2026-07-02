@@ -75,8 +75,6 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         studyRoom.setFocusMode(request.getFocusMode());
         studyRoom.setPlanTime(request.getMode() == 2 ? request.getPlanTime() : null);
         studyRoom.setStartTime(LocalDateTime.now());
-        studyRoom.setScreenSwitchCount(0);
-        studyRoom.setIsValid(1);
         studyRoom.setCreatedAt(LocalDateTime.now());
         studyRoomMapper.insert(studyRoom);
 
@@ -96,12 +94,6 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         // 1. 参数校验
         if (request.getId() == null) {
             throw new RuntimeException("自习记录ID不能为空");
-        }
-        if (request.getScreenSwitchCount() == null) {
-            throw new RuntimeException("切屏次数不能为空");
-        }
-        if (request.getScreenSwitchCount() < 0) {
-            throw new RuntimeException("切屏次数无效");
         }
 
         // 2. 查询记录
@@ -127,20 +119,18 @@ public class StudyRoomServiceImpl implements StudyRoomService {
             totalTime = 0;
         }
 
-        // 6. 判断有效性：切屏超过3次无效
-        int isValid = request.getScreenSwitchCount() > 3 ? 0 : 1;
-
-        // 7. 更新记录
+        // 6. 更新记录（所有自习均为有效，记录时长）
         studyRoom.setEndTime(now);
         studyRoom.setTotalTime((int) totalTime);
-        studyRoom.setScreenSwitchCount(request.getScreenSwitchCount());
-        studyRoom.setIsValid(isValid);
         studyRoomMapper.updateById(studyRoom);
 
-        // 8. 更新学情分析 + 加积分（只有有效的自习）
-        if (isValid == 1) {
-            studentAnalysisService.addStudyDuration(userId, (int) totalTime);
-            pointsRecordService.addPoints(userId, 5, 4);
+        // 7. 更新学情分析（所有自习均计入时长）
+        studentAnalysisService.addStudyDuration(userId, (int) totalTime);
+
+        // 8. 按时长加积分：每15分钟（900秒）加2分
+        int earnedPoints = ((int) totalTime / 900) * 2;
+        if (earnedPoints > 0) {
+            pointsRecordService.addPoints(userId, earnedPoints, 4);
         }
 
         // 9. 返回 VO
@@ -148,8 +138,8 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         vo.setId(studyRoom.getId());
         vo.setEndTime(now);
         vo.setTotalTime((int) totalTime);
-        vo.setIsValid(isValid);
         vo.setFocusMode(studyRoom.getFocusMode());
+        vo.setEarnedPoints(earnedPoints);
         return vo;
     }
 
@@ -206,9 +196,7 @@ public class StudyRoomServiceImpl implements StudyRoomService {
         vo.setStartTime(studyRoom.getStartTime());
         vo.setEndTime(studyRoom.getEndTime());
         vo.setTotalTime(studyRoom.getTotalTime());
-        vo.setScreenSwitchCount(studyRoom.getScreenSwitchCount());
         vo.setPlanTime(studyRoom.getPlanTime());
-        vo.setIsValid(studyRoom.getIsValid());
         return vo;
     }
 }

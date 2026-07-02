@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
 public interface StudyRoomMapper extends BaseMapper<StudyRoom> {
 
     @Select("SELECT COALESCE(SUM(total_time), 0) FROM study_room " +
-            "WHERE user_id = #{userId} AND is_valid = 1 AND end_time IS NOT NULL " +
+            "WHERE user_id = #{userId} AND end_time IS NOT NULL " +
             "AND start_time >= #{since}")
     Integer sumTotalTimeByUserIdSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
 
     @Select("SELECT COUNT(*) FROM study_room " +
-            "WHERE user_id = #{userId} AND is_valid = 1 AND end_time IS NOT NULL " +
+            "WHERE user_id = #{userId} AND end_time IS NOT NULL " +
             "AND start_time >= #{since}")
     Integer countValidByUserIdSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
 
