@@ -2,6 +2,7 @@ package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jycz.qingyun.mapper.PointsRecordMapper;
+import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.model.entity.PointsRecord;
 import com.jycz.qingyun.model.vo.PointsRecordListVO;
 import com.jycz.qingyun.model.vo.PointsRecordVO;
@@ -23,10 +24,14 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     @Autowired
     private PointsRecordMapper pointsRecordMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     @Transactional
     public void addPoints(Long userId, int points, int sourceType) {
-        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
+        // 查询当前积分（从 user 表读）
+        Integer currentPoints = userMapper.getPoints(userId);
         if (currentPoints == null) {
             currentPoints = 0;
         }
@@ -40,6 +45,9 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         record.setChangeTime(LocalDateTime.now());
         pointsRecordMapper.insert(record);
 
+        // 同步更新 user.points
+        userMapper.updatePoints(userId, points);
+
         log.info("加分成功: userId={}, points={}, sourceType={}, newBalance={}",
                 userId, points, sourceType, currentPoints + points);
     }
@@ -47,30 +55,32 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     @Override
     @Transactional
     public void deductPoints(Long userId, int points, int sourceType) {
-        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
-        if (currentPoints == null) {
-            currentPoints = 0;
+        // 原子扣分：SQL 层校验余额，0 行影响 = 余额不足
+        int affected = userMapper.deductPointsIfSufficient(userId, points);
+        if (affected == 0) {
+            Integer currentPoints = userMapper.getPoints(userId);
+            throw new BusinessException(400, "积分不足，当前积分：" + (currentPoints != null ? currentPoints : 0));
         }
-        if (currentPoints < points) {
-            throw new BusinessException(400, "积分不足，当前积分：" + currentPoints);
-        }
+
+        // 扣分后从 user 表读最新余额（此时已扣减完成）
+        Integer newBalance = userMapper.getPoints(userId);
 
         PointsRecord record = new PointsRecord();
         record.setUserId(userId);
         record.setChangeType(2);
         record.setChangePoints(points);
-        record.setLeftPoints(currentPoints - points);
+        record.setLeftPoints(newBalance);
         record.setSourceType(sourceType);
         record.setChangeTime(LocalDateTime.now());
         pointsRecordMapper.insert(record);
 
         log.info("扣分成功: userId={}, points={}, sourceType={}, newBalance={}",
-                userId, points, sourceType, currentPoints - points);
+                userId, points, sourceType, newBalance);
     }
 
     @Override
     public PointsRecordListVO getRecords(Long userId) {
-        Integer currentPoints = pointsRecordMapper.getLatestPoints(userId);
+        Integer currentPoints = userMapper.getPoints(userId);
         if (currentPoints == null) {
             currentPoints = 0;
         }

@@ -31,6 +31,7 @@ public class AnalysisServiceImpl implements AnalysisService {
     private final ObjectSubmitMapper objectSubmitMapper;
     private final SubjectSubmitMapper subjectSubmitMapper;
     private final PointsRecordMapper pointsRecordMapper;
+    private final UserMapper userMapper;
     private final StudyRoomService studyRoomService;
     private final StudentAnalysisMapper studentAnalysisMapper;
     @Override
@@ -67,7 +68,7 @@ public class AnalysisServiceImpl implements AnalysisService {
         }
 
         // 累计积分
-        Integer totalPoints = pointsRecordMapper.getLatestPoints(userId);
+        Integer totalPoints = userMapper.getPoints(userId);
         if (totalPoints == null) totalPoints = 0;
 
         return StudentAnalysisVO.OverviewVO.builder()
