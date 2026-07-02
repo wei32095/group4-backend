@@ -24,4 +24,6 @@ public interface CourseService {
     void endCourse(Long courseId, Long teacherId);
 
     List<AdminUserCourseVO> getAdminUserCourses(Long userId, Integer pageNum, Integer pageSize);
+
+    List<CoursePendingVO> getPendingCourseList();
 }

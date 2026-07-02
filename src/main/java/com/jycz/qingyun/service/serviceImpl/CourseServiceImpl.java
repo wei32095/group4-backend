@@ -304,6 +304,10 @@ public class CourseServiceImpl implements CourseService {
         // ✅ 如果审核通过，发送通知给教师
         if (request.getAuditStatus() == 1) {
             noticeService.sendAuditSuccessNotice(course.getUserId(), course.getCourseTitle());
+        }else if (request.getAuditStatus() == 2) {
+            // 审核驳回
+            String remark = request.getAuditRemark() != null ? request.getAuditRemark() : "未填写原因";
+            noticeService.sendAuditRejectNotice(course.getUserId(), course.getCourseTitle(), remark);
         }
 
         return CourseAuditVO.builder()
@@ -429,5 +433,43 @@ public class CourseServiceImpl implements CourseService {
         }
 
         return allCourses.subList(start, end);
+    }
+
+    @Override
+    public List<CoursePendingVO> getPendingCourseList() {
+        // 1. 查询待审核课程（audit_status = 0）
+        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Course::getAuditStatus, 0)
+                .orderByDesc(Course::getCreatedAt);
+        List<Course> courses = courseMapper.selectList(wrapper);
+
+        if (courses.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 批量查询教师信息
+        List<Long> teacherIds = courses.stream()
+                .map(Course::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, User> teacherMap = userMapper.selectBatchIds(teacherIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        // 3. 组装结果
+        return courses.stream().map(course -> {
+            User teacher = teacherMap.get(course.getUserId());
+            return CoursePendingVO.builder()
+                    .courseId(course.getId())
+                    .courseTitle(course.getCourseTitle())
+                    .teacherId(course.getUserId())
+                    .teacherName(teacher != null ? teacher.getName() : "未知老师")
+                    .description(course.getDescription())
+                    .cover(course.getCover())
+                    .courseCode(course.getCourseCode())
+                    .status(course.getStatus())
+                    .auditStatus(course.getAuditStatus())
+                    .createdAt(course.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
     }
 }
