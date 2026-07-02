@@ -13,6 +13,8 @@ public class CourseResourceUploadRequest {
     @NotBlank(message = "文件URL不能为空")
     private String fileUrl;
 
+    private Long fileSize;
+
     @NotBlank(message = "文件名不能为空")
     private String fileName;
 

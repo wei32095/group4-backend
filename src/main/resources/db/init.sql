@@ -119,6 +119,7 @@ CREATE TABLE `course_resource` (
     `user_id` BIGINT NOT NULL COMMENT '上传者ID（教师）',
     `file_name` VARCHAR(200) NOT NULL COMMENT '文件名',
     `file_url` VARCHAR(500) NOT NULL COMMENT '文件访问URL（OSS地址）',
+    `file_size` BIGINT DEFAULT '0' COMMENT '文件大小（字节）',
     `description` VARCHAR(200) DEFAULT NULL COMMENT '资源描述',
     `download_count` INT DEFAULT 0 COMMENT '下载次数',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -507,10 +508,10 @@ JOIN (SELECT user_id, left_points FROM points_record WHERE (user_id, id) IN (SEL
 SET u.points = p.left_points;
 
 -- course_resource（课程资源）
-INSERT IGNORE INTO `course_resource` (`id`, `course_id`, `user_id`, `file_name`, `file_url`, `description`, `download_count`, `created_at`) VALUES
-(1, 1, 1, '第一讲课件-名词与冠词.pptx', 'https://example.com/resource/ppt1.pptx', '课堂PPT，包含名词分类和冠词用法', 3, '2026-07-01 09:00:00'),
-(2, 1, 1, '名词练习题.pdf', 'https://example.com/resource/exercise1.pdf', '课后练习，巩固名词知识点', 5, '2026-07-01 10:00:00'),
-(3, 2, 1, '范文集-我的周末.pdf', 'https://example.com/resource/essay.pdf', '优秀范文合集，供学生参考学习', 2, '2026-06-20 15:00:00');
+INSERT IGNORE INTO `course_resource` (`id`, `course_id`, `user_id`, `file_name`, `file_url`, `file_size`, `description`, `download_count`, `created_at`) VALUES
+(1, 1, 1, '第一讲课件-名词与冠词.pptx', 'https://example.com/resource/ppt1.pptx', 2048000, '课堂PPT，包含名词分类和冠词用法', 3, '2026-07-01 09:00:00'),
+(2, 1, 1, '名词练习题.pdf', 'https://example.com/resource/exercise1.pdf', 512000, '课后练习，巩固名词知识点', 5, '2026-07-01 10:00:00'),
+(3, 2, 1, '范文集-我的周末.pdf', 'https://example.com/resource/essay.pdf', 102400, '优秀范文合集，供学生参考学习', 2, '2026-06-20 15:00:00');
 
 -- sensitive_word（敏感词库）
 INSERT IGNORE INTO `sensitive_word` (`id`, `word`, `created_at`) VALUES
