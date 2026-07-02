@@ -7,6 +7,7 @@ import com.jycz.qingyun.model.dto.UpdateSeedRequest;
 import com.jycz.qingyun.model.entity.Seed;
 import com.jycz.qingyun.model.vo.SeedVO;
 import com.jycz.qingyun.service.SeedService;
+import com.jycz.qingyun.utils.BusinessException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,7 +46,9 @@ public class SeedServiceImpl implements SeedService {
         Seed seed = new Seed();
         seed.setVariety(request.getVariety());
         seed.setDescription(request.getDescription());
-        seed.setMaxGrowth(request.getMaxGrowth());
+        seed.setSunlightMax(request.getSunlightMax());
+        seed.setWaterMax(request.getWaterMax());
+        seed.setNutrientMax(request.getNutrientMax());
         seed.setImage(request.getImage());
         seed.setStage0Image(request.getStage0Image());
         seed.setStage1Image(request.getStage1Image());
@@ -80,6 +83,10 @@ public class SeedServiceImpl implements SeedService {
             return false;
         }
 
+        if (existing.getIsDeleted() == 1) {
+            throw new BusinessException(400, "该种子已被禁用，无需重复操作");
+        }
+
         existing.setIsDeleted(1);
         seedMapper.updateById(existing);
         return true;
@@ -105,6 +112,10 @@ public class SeedServiceImpl implements SeedService {
             return null;
         }
 
+        if (existing.getIsDeleted() == 0) {
+            throw new BusinessException(400, "该种子未被禁用，无需恢复");
+        }
+
         existing.setIsDeleted(0);
         seedMapper.updateById(existing);
         return toVO(existing);
@@ -115,7 +126,9 @@ public class SeedServiceImpl implements SeedService {
         vo.setId(seed.getId());
         vo.setVariety(seed.getVariety());
         vo.setDescription(seed.getDescription());
-        vo.setMaxGrowth(seed.getMaxGrowth());
+        vo.setSunlightMax(seed.getSunlightMax());
+        vo.setWaterMax(seed.getWaterMax());
+        vo.setNutrientMax(seed.getNutrientMax());
         vo.setImage(seed.getImage());
         vo.setStage0Image(seed.getStage0Image());
         vo.setStage1Image(seed.getStage1Image());

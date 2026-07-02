@@ -45,12 +45,10 @@ public class FlowersController {
 
     @GetMapping("/my")
     public ApiResult<FlowerListVO> getMyFlowers(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
-        FlowerListVO vo = flowerService.getMyFlowers(userId, page, size);
+        FlowerListVO vo = flowerService.getMyFlowers(userId);
         return ApiResult.success(vo);
     }
 
@@ -82,15 +80,15 @@ public class FlowersController {
     }
 
     @PostMapping("/exchange")
-    public ApiResult<Boolean> exchangeItem(
+    public ApiResult<FlowerVO> exchangeItem(
             @RequestBody ExchangeRequest request,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
 
         try {
-            shopItemService.exchangeItem(userId, request.getItemId());
-            return ApiResult.success("兑换成功", true);
+            FlowerVO vo = shopItemService.exchangeItem(userId, request.getItemId());
+            return ApiResult.success("兑换成功", vo);
         } catch (RuntimeException e) {
             return ApiResult.error(400, e.getMessage());
         }

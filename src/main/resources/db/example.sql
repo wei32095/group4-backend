@@ -143,11 +143,11 @@ INSERT INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `l
 -- ----------------------------
 -- 16. 品种表 (seed)
 -- ----------------------------
-INSERT INTO `seed` (`id`, `variety`, `description`, `max_growth`, `image`, `price`) VALUES
-(1, '向日葵', '向阳而生，充满活力的花朵', 100, 'https://example.com/seeds/sunflower.png', 0),
-(2, '玫瑰', '热情似火，经典浪漫之选', 120, 'https://example.com/seeds/rose.png', 50),
-(3, '仙人掌', '坚韧不拔，耐旱易养', 80, 'https://example.com/seeds/cactus.png', 30),
-(4, '樱花', '刹那芳华，绚烂而短暂', 150, 'https://example.com/seeds/cherry.png', 80);
+INSERT INTO `seed` (`id`, `variety`, `description`, `image`, `price`, `sunlight_max`, `water_max`, `nutrient_max`) VALUES
+(1, '向日葵', '向阳而生，充满活力的花朵', 'https://example.com/seeds/sunflower.png', 0, 100, 80, 60),
+(2, '玫瑰', '热情似火，经典浪漫之选', 'https://example.com/seeds/rose.png', 50, 90, 100, 70),
+(3, '仙人掌', '坚韧不拔，耐旱易养', 'https://example.com/seeds/cactus.png', 30, 60, 40, 50),
+(4, '樱花', '刹那芳华，绚烂而短暂', 'https://example.com/seeds/cherry.png', 80, 80, 90, 100);
 
 -- ----------------------------
 -- 17. 花卉实例表 (flower)

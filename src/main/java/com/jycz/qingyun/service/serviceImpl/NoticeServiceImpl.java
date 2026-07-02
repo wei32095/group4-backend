@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jycz.qingyun.mapper.NoticeMapper;
 import com.jycz.qingyun.mapper.CourseStudentMapper;
+import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.model.dto.ApiResult;
-import com.jycz.qingyun.model.entity.Notice;
 import com.jycz.qingyun.model.entity.CourseStudent;
+import com.jycz.qingyun.model.entity.Notice;
+import com.jycz.qingyun.model.entity.User;
 import com.jycz.qingyun.model.vo.NoticeListVO;
 import com.jycz.qingyun.model.vo.NoticeVO;
 import com.jycz.qingyun.service.NoticeService;
@@ -26,6 +28,9 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Autowired
     private CourseStudentMapper courseStudentMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     // ========== 原有方法 ==========
 
@@ -201,5 +206,27 @@ public class NoticeServiceImpl implements NoticeService {
         String title = "你的问题有新回复";
         String content = replierName + "回复了你的问题：【" + problemTitle + "】，请及时查看。";
         addNotice(questionAuthorId, title, content, 10);
+    }
+
+    @Override
+    public int publishAdminNotice(String noticeTitle, String noticeContent, Integer targetRole) {
+        // 查询目标用户
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
+                .select(User::getId);
+        if (targetRole != null) {
+            wrapper.eq(User::getRole, targetRole);
+        }
+        List<User> users = userMapper.selectList(wrapper);
+
+        if (users.isEmpty()) {
+            return 0;
+        }
+
+        // 批量插入通知
+        for (User user : users) {
+            addNotice(user.getId(), noticeTitle, noticeContent, 0);
+        }
+
+        return users.size();
     }
 }
