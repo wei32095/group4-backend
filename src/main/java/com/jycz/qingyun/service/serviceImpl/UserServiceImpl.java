@@ -113,7 +113,7 @@ public class UserServiceImpl implements UserService {
         };
 
         // 8. 查询积分
-        Integer points = pointsRecordMapper.getLatestPoints(user.getId());
+        Integer points = userMapper.getPoints(user.getId());
 
         // 9. 组装 userInfo（统一返回所有字段）
         Map<String, Object> userInfo = new HashMap<>();
@@ -309,7 +309,7 @@ public class UserServiceImpl implements UserService {
         vo.setStatus(user.getStatus());
 
         // 查询积分
-        Integer points = pointsRecordMapper.getLatestPoints(user.getId());
+        Integer points = userMapper.getPoints(user.getId());
         vo.setPoints(points != null ? points : 0);
 
         return ApiResult.success(vo);
@@ -472,7 +472,7 @@ public class UserServiceImpl implements UserService {
             vo.setUpdatedAt(user.getUpdatedAt());
 
             // 查询积分
-            Integer points = pointsRecordMapper.getLatestPoints(user.getId());
+            Integer points = userMapper.getPoints(user.getId());
             vo.setPoints(points != null ? points : 0);
 
             records.add(vo);
