@@ -24,6 +24,7 @@ import com.jycz.qingyun.utils.BusinessException;
 import com.jycz.qingyun.utils.JwtUtil;
 import com.jycz.qingyun.utils.WxUtil;
 import com.jycz.qingyun.model.entity.User;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
 import com.jycz.qingyun.service.UserService;
 import com.jycz.qingyun.model.vo.LoginVO;
@@ -41,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import jakarta.annotation.PostConstruct;
 @Slf4j
 @Service
 public class UserServiceImpl implements UserService {
@@ -59,6 +61,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private VerifyCodeService verifyCodeService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private CourseMapper courseMapper;
@@ -81,8 +86,8 @@ public class UserServiceImpl implements UserService {
             return ApiResult.error(401, "账号不存在");
         }
 
-        // 3. 校验密码（当前明文比对，后续改为加密）
-        if (!request.getPassword().equals(user.getPassword())) {
+        // 3. 校验密码（BCrypt 匹配）
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return ApiResult.error(401, "密码错误");
         }
 
@@ -172,7 +177,7 @@ public class UserServiceImpl implements UserService {
         // 3. 创建用户
         User user = new User();
         user.setPhone(request.getPhone());
-        user.setPassword(request.getPassword());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName().trim());
         user.setRole(request.getRole());
         user.setStatus(1);
@@ -355,12 +360,12 @@ public class UserServiceImpl implements UserService {
         }
 
         // 校验旧密码
-        if (!request.getOldPassword().equals(user.getPassword())) {
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             return ApiResult.error(401, "旧密码错误");
         }
 
         // 更新密码
-        user.setPassword(request.getNewPassword());
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         int rows = userMapper.updateById(user);
         return ApiResult.success(rows > 0);
     }
@@ -519,6 +524,38 @@ public class UserServiceImpl implements UserService {
         vo.setCourseStats(courseStats);
         vo.setTodayActivity(todayActivity);
         return vo;
+    }
+
+    /**
+     * 启动时自动迁移存量明文密码 → BCrypt 加密
+     * 检测所有密码，如果不是 BCrypt 格式（不以 $2a$/$2b$/$2y$ 开头），
+     * 则视为明文，用 BCrypt 加密后更新。
+     * 幂等：多次运行不会重复处理已加密的密码。
+     */
+    @PostConstruct
+    public void migratePlaintextPasswords() {
+        List<User> allUsers = userMapper.selectList(null);
+        int migrated = 0;
+        for (User user : allUsers) {
+            String pwd = user.getPassword();
+            if (pwd == null || pwd.isEmpty()) {
+                continue; // 微信用户无密码，跳过
+            }
+            // BCrypt hash 固定以 $2a$ / $2b$ / $2y$ 开头
+            if (pwd.startsWith("$2a$") || pwd.startsWith("$2b$") || pwd.startsWith("$2y$")) {
+                continue; // 已加密，跳过
+            }
+            // 明文密码 → 加密
+            user.setPassword(passwordEncoder.encode(pwd));
+            userMapper.updateById(user);
+            migrated++;
+            log.info("密码迁移: userId={}, 已加密", user.getId());
+        }
+        if (migrated > 0) {
+            log.info("密码迁移完成：共迁移 {} 个用户", migrated);
+        } else {
+            log.info("密码迁移：无需迁移，所有密码均已加密");
+        }
     }
 
 }
