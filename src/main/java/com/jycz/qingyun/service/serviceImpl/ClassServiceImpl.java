@@ -159,6 +159,7 @@ public class ClassServiceImpl implements ClassService {
 
             return ClassStudentVO.builder()
                     .id(clazz.getId())
+                    .courseId(clazz.getCourseId())
                     .classTitle(clazz.getClassTitle())
                     .status(clazz.getStatus())
                     .checkinStatus(checkinStatus)
