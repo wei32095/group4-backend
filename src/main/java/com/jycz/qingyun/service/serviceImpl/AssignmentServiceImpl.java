@@ -64,7 +64,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setUpdatedAt(LocalDateTime.now());
         assignmentMapper.insert(assignment);
 
-        int sortOrder = 0;
+        int sortOrder = 1;
         for (AssignmentCreateRequest.QuestionRequest qr : request.getQuestions()) {
             Question question = new Question();
             question.setAssignmentId(assignment.getId());
@@ -236,7 +236,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
             AssignmentDetailVO.QuestionDetailVO.QuestionDetailVOBuilder builder =
                     AssignmentDetailVO.QuestionDetailVO.builder()
-                            .questionId(q.getId())
+
                             .type(q.getType())
                             .stem(q.getStem())
                             .perscore(q.getPerscore())
@@ -313,21 +313,38 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         LambdaQueryWrapper<Question> qWrapper = new LambdaQueryWrapper<>();
-        qWrapper.eq(Question::getAssignmentId, request.getAssignmentId());
+        qWrapper.eq(Question::getAssignmentId, request.getAssignmentId())
+                .orderByAsc(Question::getSortOrder);
         List<Question> questions = questionMapper.selectList(qWrapper);
-        Map<Long, Question> questionMap = questions.stream()
-                .collect(Collectors.toMap(Question::getId, q -> q));
+
+        if (questions.isEmpty()) {
+            throw new BusinessException(400, "该作业没有题目，无法提交");
+        }
+
+        // ✅ 用循环建立映射（避免 null key 问题）
+        Map<Integer, Question> questionMap = new HashMap<>();
+        for (Question q : questions) {
+            if (q.getSortOrder() != null) {
+                questionMap.put(q.getSortOrder(), q);
+            } else {
+                log.warn("题目 {} 的 sortOrder 为 null", q.getId());
+            }
+        }
+        log.info("questionMap keys: {}", questionMap.keySet());
 
         int totalAutoScore = 0;
+
         for (AssignmentSubmitRequest.AnswerRequest answer : request.getAnswers()) {
-            Question q = questionMap.get(answer.getQuestionId());
-            if (q == null) continue;
+            Question q = questionMap.get(answer.getSortOrder());
+            if (q == null) {
+                throw new BusinessException(400, "题目序号 " + answer.getSortOrder() + " 不存在");
+            }
 
             if (q.getType() == 5) {
                 SubjectSubmit ss = new SubjectSubmit();
                 ss.setAssignmentId(request.getAssignmentId());
                 ss.setUserId(studentId);
-                ss.setQuestionId(answer.getQuestionId());
+                ss.setQuestionId(q.getId());
                 ss.setAnswerPicture(answer.getAnswer());
                 ss.setFinishStatus(2);
                 ss.setGradingStatus(1);
@@ -342,7 +359,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
                 ObjectSubmit os = new ObjectSubmit();
                 os.setAssignmentId(request.getAssignmentId());
-                os.setQuestionId(answer.getQuestionId());
+                os.setQuestionId(q.getId());
                 os.setUserId(studentId);
                 os.setObjectScore(score);
                 os.setAnswerWord(answer.getAnswer());
@@ -353,7 +370,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         log.info("作业提交成功: assignmentId={}, studentId={}, autoScore={}",
                 request.getAssignmentId(), studentId, totalAutoScore);
-        // ✅ 发送提交作业通知给教师
+
         Course course = courseMapper.selectById(assignment.getCourseId());
         if (course != null) {
             User student = userMapper.selectById(studentId);
