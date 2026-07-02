@@ -17,7 +17,5 @@ public class StudyRoom {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Integer totalTime;     // 总时长（秒）
-    private Integer screenSwitchCount; // 切屏次数
-    private Integer isValid;       // 1-有效，0-无效
     private LocalDateTime createdAt;
 }

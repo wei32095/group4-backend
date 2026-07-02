@@ -9,6 +9,6 @@ public class StudyRoomEndVO {
     private Long id;
     private LocalDateTime endTime;
     private Integer totalTime;
-    private Integer isValid;
     private Integer focusMode;
+    private Integer earnedPoints;      // 本次自习获得的积分
 }
