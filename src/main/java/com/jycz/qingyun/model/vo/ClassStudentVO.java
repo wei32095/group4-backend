@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class ClassStudentVO {//
 
     private Long id;
+    private Long courseId;
     private String classTitle;
     private String status;
     private String checkinStatus;
