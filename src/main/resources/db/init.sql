@@ -159,6 +159,8 @@ CREATE TABLE `question` (
     `explanation` TEXT COMMENT '解析',
     `perscore` INT NOT NULL COMMENT '每题分值',
     `sort_order` INT DEFAULT '0' COMMENT '排序序号',
+    `options` JSON DEFAULT NULL COMMENT '选项（单选题/多选题专用，JSON数组格式）',
+    `image_url` VARCHAR(500) DEFAULT NULL COMMENT '题目图片（OSS URL）',
     PRIMARY KEY (`id`),
     KEY `idx_assignment_id` (`assignment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='题目表';

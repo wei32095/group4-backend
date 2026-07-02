@@ -35,5 +35,6 @@ public class AssignmentDetailVO {
         private Integer score;
         private String explanation;
         private String teacherComment;
+        private String imageUrl;
     }
 }
