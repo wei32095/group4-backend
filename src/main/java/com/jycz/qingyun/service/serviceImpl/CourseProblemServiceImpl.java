@@ -46,7 +46,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
 
         // 2. 校验课程状态（只有 active 才能发布问题）
         if (!"active".equals(course.getStatus())) {
-            throw new BusinessException(400, "课程当前不可用，无法发布问题（课程状态：pending 或 archived）");
+            throw new BusinessException(400, "该课程已结束，无法发布问题");
         }
 
         // 3. 校验用户是否已加入该课程

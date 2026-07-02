@@ -202,6 +202,12 @@ public class NoticeServiceImpl implements NoticeService {
         addNotice(teacherId, title, content, 9);
     }
     @Override
+    public void sendAuditRejectNotice(Long teacherId, String courseTitle, String reason) {
+        String title = "课程审核未通过";
+        String content = "您的课程【" + courseTitle + "】审核未通过，原因：" + reason + "，请修改后重新提交。";
+        addNotice(teacherId, title, content, 9);
+    }
+    @Override
     public void sendProblemRepliedNotice(Long questionAuthorId, String replierName, String problemTitle) {
         String title = "你的问题有新回复";
         String content = replierName + "回复了你的问题：【" + problemTitle + "】，请及时查看。";
