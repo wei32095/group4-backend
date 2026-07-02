@@ -20,6 +20,8 @@ public class CourseResource {
 
     private String fileUrl;
 
+    private Long fileSize;
+
     private String description;
 
     private Integer downloadCount;

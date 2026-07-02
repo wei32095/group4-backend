@@ -59,6 +59,7 @@ public class CourseResourceServiceImpl implements CourseResourceService {
         resource.setFileName(request.getFileName());
         resource.setFileUrl(request.getFileUrl());
 
+        resource.setFileSize(request.getFileSize());
         resource.setDescription(request.getDescription());
         resource.setDownloadCount(0);
         courseResourceMapper.insert(resource);
@@ -185,7 +186,7 @@ public class CourseResourceServiceImpl implements CourseResourceService {
                 .teacherName(teacher != null ? teacher.getName() : "未知老师")
                 .fileName(resource.getFileName())
                 .fileUrl(resource.getFileUrl())
-
+                .fileSize(resource.getFileSize())
                 .description(resource.getDescription())
                 .downloadCount(resource.getDownloadCount())
                 .createdAt(resource.getCreatedAt())

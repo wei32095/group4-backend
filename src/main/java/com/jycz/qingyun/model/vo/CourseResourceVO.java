@@ -15,6 +15,7 @@ public class CourseResourceVO {
     private String teacherName;
     private String fileName;
     private String fileUrl;
+    private Long fileSize;
     private String description;
     private Integer downloadCount;
     private LocalDateTime createdAt;
