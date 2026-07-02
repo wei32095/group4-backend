@@ -32,6 +32,8 @@ public class User {
 
     private Integer status; // 1-正常 0-禁用
 
+    private Integer points; // 当前积分余额
+
     private LocalDateTime banExpireTime;
 
     private String banReason;
