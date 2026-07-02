@@ -75,6 +75,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- 密码加密（仅 crypto 模块，不影响现有认证体系） -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <!-- 阿里云 OSS -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>
