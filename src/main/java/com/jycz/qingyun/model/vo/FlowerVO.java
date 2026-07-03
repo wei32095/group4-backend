@@ -16,4 +16,10 @@ public class FlowerVO {
     private Integer stage;
     private Integer isUnlocked;
     private LocalDateTime createdAt;
+
+    private String image;
+    private String stage0Image;
+    private String stage1Image;
+    private String stage2Image;
+    private String stage3Image;
 }
