@@ -20,7 +20,6 @@ public class Assignment {
 
     private Integer maxScore;
 
-    private String studentStatus;
 
     private LocalDateTime assignmentCreateTime;
 
