@@ -249,6 +249,14 @@ public class VoteServiceImpl implements VoteService {
             votedVoteIds.add(record.getVoteId());
         }
 
+        Map<Long, VoteRecord> userVoteMap = records.stream()
+                .filter(r -> r.getUserId().equals(studentId))
+                .collect(Collectors.toMap(
+                        VoteRecord::getVoteId,
+                        r -> r,
+                        (existing, replacement) -> replacement
+                ));
+
         // 5. 组装结果
         List<VoteListVO> result = new ArrayList<>();
         for (ClassVote vote : votes) {
@@ -264,13 +272,24 @@ public class VoteServiceImpl implements VoteService {
                 status = "ended";
             }
 
+            VoteRecord userVote = userVoteMap.get(vote.getId());
+            String selectedOption = null;
+            Boolean hasVoted = false;
+            if (userVote != null) {
+                selectedOption = userVote.getSelectedOption();
+                hasVoted = true;
+            }
+
             result.add(VoteListVO.builder()
                     .voteId(vote.getId())
                     .heading(vote.getHeading())
                     .options(options)
                     .status(status)  // ← 用动态计算的
                     .endedAt(vote.getEndedAt())
-                    .hasVoted(votedVoteIds.contains(vote.getId()))
+
+                    .selectedOption(selectedOption)   // ← 新增
+                    .correctOption(vote.getCorrectOption())  // ← 新增
+                    .hasVoted(hasVoted)
                     .build());
         }
 
