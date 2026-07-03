@@ -62,7 +62,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAssignmentTitle(request.getAssignmentTitle());
         assignment.setDeadline(request.getDeadline());
         assignment.setMaxScore(request.getMaxScore());
-        assignment.setStudentStatus("PENDING");
+
         assignment.setAssignmentCreateTime(LocalDateTime.now());
         assignment.setUpdatedAt(LocalDateTime.now());
         assignmentMapper.insert(assignment);
