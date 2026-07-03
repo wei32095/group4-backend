@@ -1,5 +1,6 @@
 package com.jycz.qingyun.model.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ public class AssignmentSubmitRequest {
     private Long assignmentId;
 
     @NotNull(message = "答案列表不能为空")
+    @Valid
     private List<AnswerRequest> answers;
 
     @Data
