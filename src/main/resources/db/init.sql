@@ -44,7 +44,7 @@ CREATE TABLE `course` (
     `student_count` INT DEFAULT '0' COMMENT '学生人数',
     
     `course_code` VARCHAR(50) NOT NULL COMMENT '课程码',
-    `status` VARCHAR(20) DEFAULT 'active' COMMENT '状态：active-进行中，archived-已归档',
+    `status` VARCHAR(20) DEFAULT 'pending' COMMENT '状态：pending-待审核，active-进行中，archived-已归档',
     `audit_status` TINYINT DEFAULT '0' COMMENT '审核状态：0-待审，1-通过，2-驳回',
     `audit_remark` VARCHAR(255) DEFAULT '' COMMENT '审核备注',
     `audit_time` DATETIME DEFAULT NULL COMMENT '审核时间',
@@ -137,7 +137,6 @@ CREATE TABLE `assignment` (
     `assignment_title` VARCHAR(100) NOT NULL COMMENT '作业标题',
     `deadline` DATETIME NOT NULL COMMENT '截止时间',
     `max_score` INT NOT NULL COMMENT '满分分值',
-    `student_status` VARCHAR(20) DEFAULT 'PENDING' COMMENT '当前学生状态：PENDING-待完成，SUBMITTED-已提交，GRADED-已批改，OVERDUE-逾期',
     `assignment_create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
@@ -467,25 +466,100 @@ CREATE TABLE `feedback` (
     KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户反馈表';
 
-
 -- =============================================
--- 测试数据（面向初中生 · 英语学习）
+-- 测试数据
 -- =============================================
 
-INSERT IGNORE INTO `user` (`id`, `name`, `password`, `phone`, `bio`, `avatar`, `role`, `openid`, `status`, `ban_expire_time`, `ban_reason`, `created_at`, `updated_at`) VALUES (1,'张老师','654321','13800000001','资深英语讲师，擅长趣味互动教学','https://oos.example.com/avatar/13.jpg',2,'wx_openid_001',1,NULL,NULL,'2026-06-28 13:10:15','2026-06-28 16:29:22'),(2,'李小明','encrypted_pwd_2','13800000002','初二学生，喜欢英语和数学','https://example.com/avatar2.jpg',1,'wx_openid_002',1,NULL,NULL,'2026-06-28 13:10:15','2026-06-30 11:32:31'),(3,'王小红','encrypted_pwd_3','13800000003','初一学生，对英语学习充满热情','13812345678',1,'wx_openid_003',1,NULL,NULL,'2026-06-28 13:10:15','2026-06-30 13:20:48'),(4,'admin','encrypted_pwd_4','13800000004','系统管理员','https://example.com/avatar4.jpg',3,NULL,1,NULL,NULL,'2026-06-28 13:10:15','2026-06-28 13:10:15'),(5,'李斯','encrypted_pwd_3','13800001234',NULL,NULL,1,NULL,1,NULL,NULL,'2026-06-28 15:13:29','2026-06-28 15:13:29'),(6,'我是微信用户','','13800001111',NULL,NULL,1,'mock_openid_0b3hTc00074jEW1oSe3007bJIy4hTc0A',1,NULL,NULL,'2026-06-28 15:56:42','2026-06-30 12:43:48'),(8,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0d3AQ80w3qxCj73zKi1w3imDDG1AQ80z',1,NULL,NULL,'2026-06-29 15:22:59','2026-06-29 15:22:59'),(9,'张三','encrypted_1','13812345678',NULL,NULL,1,'mock_openid_0b3b3HHa1LNu1M0Jz6Ha1o7que4b3HHK',1,NULL,NULL,'2026-06-30 11:35:30','2026-06-30 17:06:02'),(10,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0e3iCaGa1AMeYL0DJoFa1TDjiW3iCaGX',1,NULL,NULL,'2026-06-30 11:44:19','2026-06-30 11:44:19'),(11,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0d3sNEkl2BNZYh4vCpol2JEDh61sNEkR',1,NULL,NULL,'2026-06-30 11:44:46','2026-06-30 11:44:46'),(13,'张三','abc123','13812345670',NULL,NULL,1,NULL,1,NULL,NULL,'2026-06-30 13:40:57','2026-06-30 13:40:57'),(14,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0e3C6LFa12W1ZL0qfoFa11whEh1C6LFG',1,NULL,NULL,'2026-06-30 14:05:09','2026-06-30 14:05:09'),(15,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0b3vA4ll2LyXYh4D0Vnl2UYBEI3vA4lP',1,NULL,NULL,'2026-06-30 14:08:09','2026-06-30 14:08:09'),(16,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0f3XkuFa1CFiZL0AvGIa1g2bWj1XkuF8',1,NULL,NULL,'2026-06-30 14:09:44','2026-06-30 14:09:44'),(18,'微信用户1','',NULL,NULL,NULL,1,'mock_openid_0e3dZRGa1dA70M0YomFa1ogBgC4dZRGk',1,NULL,NULL,'2026-06-30 14:16:22','2026-06-30 14:17:22'),(19,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0a3zRLFa1Ei1ZL0Y91Ia1YbivK2zRLF8',1,NULL,NULL,'2026-06-30 14:17:33','2026-06-30 14:17:33'),(20,'微信用户1','',NULL,NULL,NULL,1,'mock_openid_0c3Nsi100caGFW1VS8400YX7Uk1Nsi1j',1,NULL,NULL,'2026-06-30 14:29:54','2026-06-30 14:30:08'),(21,'微信用户1','',NULL,NULL,NULL,1,'mock_openid_0e35fp0w3yfCj737T00w3C5Xz815fp0U',1,NULL,NULL,'2026-06-30 14:30:23','2026-06-30 14:30:51'),(22,'何彦星','',NULL,NULL,NULL,1,'mock_openid_0b30QkGa1WprYL09eCGa1NVtCQ30QkGM',1,NULL,NULL,'2026-06-30 14:31:56','2026-06-30 15:24:09'),(23,'微信用户','',NULL,NULL,NULL,1,'mock_openid_the code is a mock one',1,NULL,NULL,'2026-06-30 15:39:39','2026-06-30 15:39:39'),(24,'韦敏睿','12345678w','18260933155',NULL,NULL,1,NULL,1,NULL,NULL,'2026-06-30 16:33:00','2026-06-30 16:33:00'),(25,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0a3kcXFa15HIYL0NtRHa1EEZ4H2kcXFa',1,NULL,NULL,'2026-06-30 17:23:27','2026-06-30 17:23:27'),(26,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0c3WIJ200N6bHW1ucB000m6vsu2WIJ2E',1,NULL,NULL,'2026-07-01 14:53:50','2026-07-01 14:53:50'),(27,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0f3eUzHa1DOL1M0QYWFa1F3aJZ3eUzHZ',1,NULL,NULL,'2026-07-01 16:15:32','2026-07-01 16:15:32'),(28,'微信用户','',NULL,NULL,NULL,1,'mock_openid_0c303XFa1ng00M0KWYHa1DalhW303XFy',1,NULL,NULL,'2026-07-01 16:39:05','2026-07-01 16:39:05');
-INSERT IGNORE INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `created_at`, `updated_at`, `audit_status`, `audit_remark`, `audit_time`) VALUES (1,1,'英语语法入门','从词性到时态，轻松掌握英语语法基础','https://example.com/course1.jpg',2,'ENG2026','active','2026-06-28 13:10:15','2026-06-28 13:10:15',0,'',NULL),(2,1,'英语阅读与写作','通过趣味短文学习地道表达，提升写作能力','https://example.com/course2.jpg',2,'WRITE2026','active','2026-06-28 13:10:15','2026-06-30 16:53:47',1,'',NULL);
-INSERT IGNORE INTO `course_student` (`id`, `course_id`, `user_id`, `joined_at`) VALUES (1,1,2,'2026-06-28 13:10:15'),(2,1,3,'2026-06-28 13:10:15'),(3,2,2,'2026-06-28 13:10:15'),(4,2,24,'2026-06-30 16:54:00');
-INSERT IGNORE INTO `course_review` (`id`, `course_id`, `user_id`, `star`, `review_content`, `likecount`, `review_create_time`) VALUES (1,1,2,5,'老师讲得很清楚，原来语法也可以这么有趣！',3,'2026-06-28 13:10:16'),(2,1,3,4,'内容很好，要是能多些练习就更棒了',1,'2026-06-28 13:10:16');
-INSERT IGNORE INTO `class` (`id`, `course_id`, `user_id`, `class_title`, `file_url`, `end_time`, `status`, `create_time`) VALUES (1,1,1,'第一讲：名词与冠词——认识事物的名字','https://example.com/ppt1.pptx','2026-07-01 11:00:00','ended','2026-06-29 15:07:22'),(2,1,1,'第二讲：动词与时态——描述动作的发生','https://example.com/ppt2.pptx','2026-07-08 11:00:00','active','2026-06-29 15:07:22'),(3,2,1,'第一讲：如何写好一个段落',NULL,'2026-06-20 16:00:00','ended','2026-06-29 15:07:22');
-INSERT IGNORE INTO `assignment` (`id`, `course_id`, `assignment_title`, `deadline`, `max_score`, `student_status`, `assignment_create_time`, `updated_at`) VALUES (1,1,'第一次作业：名词分类练习','2026-07-05 23:59:59',100,'SUBMITTED','2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,1,'第二次作业：一般现在时造句','2026-07-15 23:59:59',100,'PENDING','2026-06-28 13:10:16','2026-06-28 13:10:16'),(3,2,'段落写作：我的周末','2026-07-25 23:59:59',50,'OVERDUE','2026-06-28 13:10:16','2026-07-01 16:35:41');
-INSERT IGNORE INTO `question` (`id`, `assignment_id`, `type`, `stem`, `answer`, `explanation`, `perscore`, `sort_order`) VALUES (1,1,1,'下列哪个单词是可数名词？','C','apple（苹果）是可数名词，可以说 an apple',5,1),(2,1,2,'以下哪些是不可数名词？','A,B,D','water/rice/milk 都是不可数名词',10,2),(3,1,3,'不定冠词 "an" 用于以元音音素开头的单词前。','正确','an apple, an hour（h不发音）',5,3),(4,1,5,'请写出5个不可数名词，并用每个词造一个简单的英文句子。','略（主观题）',NULL,20,4),(5,2,1,'"He _____ to school every day." 应该填什么？','C','He 是第三人称单数，动词要用 goes',10,1),(6,2,5,'请用一般现在时写一段话介绍你的日常生活（至少5句话）。',NULL,NULL,30,2),(7,3,1,'段落写作中，主题句通常放在段落的什么位置？','B','主题句通常放在段落开头，概括全段大意',5,1),(8,3,4,'英语写作中，段落之间用来连接思路的词叫做______词。','过渡','过渡词（transition words）如 however, therefore',5,2),(9,3,5,'请以"My Favorite Season"为题，写一篇80词左右的短文。',NULL,NULL,20,3);
-INSERT IGNORE INTO `object_submit` (`id`, `assignment_id`, `question_id`, `user_id`, `object_score`, `answer_word`, `submit_time`) VALUES (1,1,1,2,5,'C','2026-06-28 13:10:16'),(2,1,2,2,10,'A,B,D','2026-06-28 13:10:16'),(3,1,3,2,0,'正确','2026-06-28 13:10:16'),(4,3,7,2,5,'B','2026-06-28 13:10:16'),(5,3,8,2,5,'过渡','2026-06-28 13:10:16');
-INSERT IGNORE INTO `subject_submit` (`id`, `assignment_id`, `user_id`, `question_id`, `answer_picture`, `subject_score`, `teacher_comment`, `finish_status`, `grading_status`, `finish_time`, `grading_time`) VALUES (1,1,2,4,'https://example.com/answer1.jpg',18,'句子写得很好！可以试试用 more 来修饰不可数名词哦',2,2,'2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,2,3,6,'https://example.com/answer2.jpg',NULL,NULL,2,1,'2026-06-28 13:10:16',NULL),(3,3,2,9,'https://example.com/answer3.jpg',15,'内容很丰富，可以注意一下段落之间的过渡词使用',2,2,'2026-06-28 13:10:16','2026-06-28 13:10:16');
-INSERT IGNORE INTO `class_check` (`id`, `class_id`, `user_id`, `check_status`, `checkin_time`) VALUES (1,1,2,1,'2026-07-01 08:55:00'),(2,1,3,2,'2026-07-01 09:15:00'),(3,2,2,1,'2026-07-08 08:50:00'),(4,2,3,3,NULL);
-INSERT IGNORE INTO `class_vote` (`id`, `class_id`, `heading`, `options`, `correct_option`, `duration`, `status`, `created_at`, `ended_at`) VALUES (1,1,'选出正确的冠词填空：_____ apple a day keeps the doctor away.','[\"A. A\", \"B. An\", \"C. The\", \"D. 不填\"]','B',120,'ended','2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,2,'"She _____ (go) to school yesterday." 正确的形式是？','[\"A. go\", \"B. goes\", \"C. went\", \"D. going\"]','C',90,'active','2026-06-28 13:10:16',NULL);
-INSERT IGNORE INTO `vote_record` (`id`, `vote_id`, `user_id`, `selected_option`, `is_correct`, `submitted_at`) VALUES (1,1,2,'B',1,'2026-06-28 13:10:16'),(2,1,3,'A',0,'2026-06-28 13:10:16'),(3,2,2,'C',1,'2026-06-28 13:10:16');
-INSERT IGNORE INTO `class_chat` (`id`, `class_id`, `user_id`, `message_type`, `content`, `sent_time`) VALUES (1,1,2,1,'老师，可数名词和不可数名词怎么区分呀？','2026-06-28 13:10:16'),(2,1,1,1,'很好问题！通常可以数出个数的就是可数名词，像 water 就数不了','2026-06-28 13:10:16'),(3,1,3,2,'https://example.com/chat_image.png','2026-06-28 13:10:16'),(4,2,2,1,'老师，一般现在时和现在进行时有什么区别？','2026-06-28 13:10:16');
-INSERT IGNORE INTO `study_room` (`id`, `user_id`, `goal`, `mode`, `focus_mode`, `plan_time`, `start_time`, `end_time`, `total_time`, `created_at`) VALUES (1,2,'复习名词和冠词',1,0,NULL,'2026-07-01 08:00:00','2026-07-01 10:30:00',9000,'2026-06-28 13:10:16'),(2,2,'背诵本周学过的单词',2,0,7200,'2026-07-02 19:00:00','2026-07-02 20:30:00',5400,'2026-06-28 13:10:16'),(3,3,'预习下一节课内容',1,0,NULL,'2026-07-03 14:00:00','2026-07-03 16:00:00',7200,'2026-06-28 13:10:16'),(4,2,'复习一般现在时',1,0,NULL,'2026-06-29 10:27:08','2026-06-29 10:44:16',1028,'2026-06-29 10:27:08'),(5,1,NULL,1,0,NULL,'2026-06-29 10:28:55',NULL,NULL,'2026-06-29 10:28:55'),(6,2,'背英语单词',2,1,3600,'2026-07-05 20:00:00','2026-07-05 20:15:00',900,'2026-06-30 10:33:28'),(7,2,'复习冠词用法',1,0,NULL,'2026-07-04 09:00:00','2026-07-04 11:00:00',7200,'2026-06-30 10:33:28'),(10,2,'完成英语作业',1,1,NULL,'2026-07-04 14:00:00','2026-07-04 14:15:00',900,'2026-06-30 10:33:28'),(11,2,'完成英语作业',1,0,NULL,'2026-06-30 11:14:56','2026-06-30 11:15:37',40,'2026-06-30 11:14:56'),(12,2,'完成英语作业',1,0,NULL,'2026-06-30 11:16:43','2026-06-30 11:16:59',15,'2026-06-30 11:16:43'),(13,2,'完成英语作业',1,0,NULL,'2026-06-30 14:42:31',NULL,NULL,'2026-06-30 14:42:31');
+-- 用户 (16个)
+INSERT IGNORE INTO `user` (`id`, `name`, `password`, `phone`, `bio`, `avatar`, `role`, `openid`, `status`, `created_at`, `updated_at`) VALUES
+(1,'张老师','654321','13800000001','资深英语讲师','https://example.com/avatar/13.jpg',2,'wx_openid_001',1,'2026-06-28 13:10:15','2026-06-28 16:29:22'),
+(2,'李小明','123456','13800000002','初二学生','https://example.com/avatar2.jpg',1,'wx_openid_002',1,'2026-06-28 13:10:15','2026-06-30 11:32:31'),
+(3,'王小红','123456','13800000003','初一学生','https://example.com/avatar3.jpg',1,'wx_openid_003',1,'2026-06-28 13:10:15','2026-06-30 13:20:48'),
+(4,'admin','123456','13800000004','系统管理员','https://example.com/avatar4.jpg',3,NULL,1,'2026-06-28 13:10:15','2026-06-28 13:10:15'),
+(5,'李斯','123456','13800001234',NULL,NULL,1,NULL,1,'2026-06-28 15:13:29','2026-06-28 15:13:29'),
+(6,'我是微信用户','123456','13800001111',NULL,NULL,1,'mock_openid_001',1,'2026-06-28 15:56:42','2026-06-30 12:43:48'),
+(9,'张三','123456','13812345678',NULL,NULL,1,'mock_openid_002',1,'2026-06-30 11:35:30','2026-06-30 17:06:02'),
+(22,'何彦星','123456',NULL,NULL,NULL,1,'mock_openid_003',1,'2026-06-30 14:31:56','2026-06-30 15:24:09'),
+(24,'韦敏睿','123456','18260933155',NULL,NULL,1,NULL,1,'2026-06-30 16:33:00','2026-06-30 16:33:00'),
+(30,'陈老师','123456','13800000100','英语口语名师','https://example.com/avatar30.jpg',2,NULL,1,'2026-07-01 09:00:00','2026-07-01 09:00:00'),
+(31,'刘老师','123456','13800000101','阅读理解教师','https://example.com/avatar31.jpg',2,NULL,1,'2026-07-01 09:00:00','2026-07-01 09:00:00'),
+(32,'系统管理员','guanliyuan','13800000999',NULL,NULL,3,NULL,1,'2026-07-01 09:00:00','2026-07-01 09:00:00'),
+(33,'赵小刚','123456','13800000102',NULL,NULL,1,NULL,1,'2026-07-01 10:00:00','2026-07-01 10:00:00'),
+(34,'陈小美','123456','13800000103',NULL,NULL,1,NULL,1,'2026-07-01 10:00:00','2026-07-01 10:00:00'),
+(35,'周小明','123456','13800000104',NULL,NULL,1,NULL,1,'2026-07-01 10:00:00','2026-07-01 10:00:00'),
+(36,'林小婷','123456','13800000105',NULL,NULL,1,NULL,1,'2026-07-01 10:00:00','2026-07-01 10:00:00');
+
+-- 课程
+INSERT IGNORE INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `created_at`, `updated_at`, `audit_status`) VALUES
+(1,1,'英语语法入门','从词性到时态，轻松掌握英语语法基础','https://example.com/course1.jpg',4,'ENG2026','active','2026-06-28 13:10:15','2026-06-28 13:10:15',1),
+(2,1,'英语阅读与写作','通过趣味短文学习地道表达','https://example.com/course2.jpg',3,'WRITE2026','active','2026-06-28 13:10:15','2026-06-30 16:53:47',1),
+(3,30,'趣味英语口语','日常对话场景练习','https://example.com/course3.jpg',0,'TALK2026','pending','2026-07-01 09:00:00','2026-07-01 09:00:00',0);
+
+-- 课程-学生
+INSERT IGNORE INTO `course_student` (`id`, `course_id`, `user_id`, `joined_at`) VALUES
+(1,1,2,'2026-06-28 13:10:15'),(2,1,3,'2026-06-28 13:10:15'),
+(3,2,2,'2026-06-28 13:10:15'),(4,2,24,'2026-06-30 16:54:00'),
+(5,1,33,'2026-07-01 10:00:00'),(6,1,34,'2026-07-01 10:00:00'),
+(7,2,35,'2026-07-01 10:00:00');
+
+-- 课堂
+INSERT IGNORE INTO `class` (`id`, `course_id`, `user_id`, `class_title`, `file_url`, `end_time`, `status`, `create_time`) VALUES
+(1,1,1,'第一讲：名词与冠词','https://example.com/ppt1.pptx','2026-07-01 11:00:00','ended','2026-06-29 15:07:22'),
+(2,1,1,'第二讲：动词与时态','https://example.com/ppt2.pptx','2026-07-08 11:00:00','active','2026-06-29 15:07:22'),
+(3,2,1,'第一讲：如何写好段落',NULL,'2026-06-20 16:00:00','ended','2026-06-29 15:07:22');
+
+-- 作业（已去掉 student_status 字段）
+INSERT IGNORE INTO `assignment` (`id`, `course_id`, `assignment_title`, `deadline`, `max_score`, `assignment_create_time`, `updated_at`) VALUES
+(1,1,'第一次作业：名词分类练习','2026-07-05 23:59:59',100,'2026-06-28 13:10:16','2026-06-28 13:10:16'),
+(2,1,'第二次作业：一般现在时','2026-07-15 23:59:59',100,'2026-06-28 13:10:16','2026-06-28 13:10:16'),
+(3,2,'段落写作：我的周末','2026-07-25 23:59:59',50,'2026-06-28 13:10:16','2026-07-01 16:35:41');
+
+-- 题目
+INSERT IGNORE INTO `question` (`id`, `assignment_id`, `type`, `stem`, `answer`, `explanation`, `perscore`, `sort_order`) VALUES
+(1,1,1,'下列哪个单词是可数名词？','C','apple是可数名词',5,1),
+(2,1,2,'哪些是不可数名词？','A,B,D','water/rice/milk都是不可数',10,2),
+(3,1,3,'an用于元音音素开头的单词前','正确','an apple, an hour',5,3),
+(4,1,5,'写出5个不可数名词并造句','略','',20,4),
+(5,2,1,'He _____ to school every day.','C','第三人称单数用goes',10,1),
+(6,2,5,'用一般现在时介绍你的日常生活',NULL,NULL,30,2),
+(7,3,1,'主题句通常放在段落什么位置？','B','段落开头',5,1),
+(8,3,4,'连接思路的词叫做______词','过渡','however, therefore等',5,2),
+(9,3,5,'以My Favorite Season写80词短文',NULL,NULL,20,3);
+
+-- 客观题提交
+INSERT IGNORE INTO `object_submit` (`id`, `assignment_id`, `question_id`, `user_id`, `object_score`, `answer_word`, `submit_time`) VALUES
+(1,1,1,2,5,'C','2026-06-28 13:10:16'),
+(2,1,2,2,10,'A,B,D','2026-06-28 13:10:16'),
+(3,1,3,2,0,'正确','2026-06-28 13:10:16'),
+(4,3,7,2,5,'B','2026-06-28 13:10:16'),
+(5,3,8,2,5,'过渡','2026-06-28 13:10:16');
+
+-- 主观题提交
+INSERT IGNORE INTO `subject_submit` (`id`, `assignment_id`, `user_id`, `question_id`, `answer_picture`, `subject_score`, `teacher_comment`, `finish_status`, `grading_status`, `finish_time`, `grading_time`) VALUES
+(1,1,2,4,'https://example.com/answer1.jpg',18,'句子写得很好！',2,2,'2026-06-28 13:10:16','2026-06-28 13:10:16'),
+(2,2,3,6,'https://example.com/answer2.jpg',NULL,NULL,2,1,'2026-06-28 13:10:16',NULL),
+(3,3,2,9,'https://example.com/answer3.jpg',15,'注意过渡词使用',2,2,'2026-06-28 13:10:16','2026-06-28 13:10:16');
+
+-- 签到
+INSERT IGNORE INTO `class_check` (`id`, `class_id`, `user_id`, `check_status`, `checkin_time`) VALUES
+(1,1,2,1,'2026-07-01 08:55:00'),(2,1,3,2,'2026-07-01 09:15:00'),
+(3,2,2,1,'2026-07-08 08:50:00'),(4,2,3,3,NULL);
+
+-- 投票
+INSERT IGNORE INTO `class_vote` (`id`, `class_id`, `heading`, `options`, `correct_option`, `duration`, `status`) VALUES
+(1,1,'_____ apple a day...','[\"A. A\",\"B. An\",\"C. The\",\"D. 不填\"]','B',120,'ended'),
+(2,2,'She _____ to school yesterday.','[\"A. go\",\"B. goes\",\"C. went\",\"D. going\"]','C',90,'active');
+INSERT IGNORE INTO `vote_record` (`id`, `vote_id`, `user_id`, `selected_option`, `is_correct`, `submitted_at`) VALUES
+(1,1,2,'B',1,'2026-06-28 13:10:16'),(2,1,3,'A',0,'2026-06-28 13:10:16'),(3,2,2,'C',1,'2026-06-28 13:10:16');
+
+-- 聊天 自习室 积分
+INSERT IGNORE INTO `class_chat` (`id`, `class_id`, `user_id`, `message_type`, `content`, `sent_time`) VALUES
+(1,1,2,1,'可数名词和不可数名词怎么区分？','2026-06-28 13:10:16'),
+(2,1,1,1,'能数出个数的就是可数名词','2026-06-28 13:10:16');
+INSERT IGNORE INTO `study_room` (`id`, `user_id`, `goal`, `mode`, `start_time`, `end_time`, `total_time`, `created_at`) VALUES
+(1,2,'复习',1,'2026-07-01 08:00:00','2026-07-01 10:30:00',9000,'2026-06-28 13:10:16'),
+(2,2,'背单词',2,'2026-07-02 19:00:00','2026-07-02 20:30:00',5400,'2026-06-28 13:10:16'),
+(3,3,'预习',1,'2026-07-03 14:00:00','2026-07-03 16:00:00',7200,'2026-06-28 13:10:16');
 INSERT IGNORE INTO `points_record` (`id`, `user_id`, `change_type`, `change_points`, `left_points`, `source_type`, `change_time`) VALUES
 (1,2,1,10,50,1,'2026-06-28 13:10:16'),
 (2,2,1,5,55,2,'2026-06-28 13:10:16'),
@@ -493,42 +567,58 @@ INSERT IGNORE INTO `points_record` (`id`, `user_id`, `change_type`, `change_poin
 (4,3,1,10,30,1,'2026-06-28 13:10:16'),
 (5,3,1,15,45,3,'2026-06-28 13:10:16'),
 (6,2,2,15,20,5,'2026-06-29 11:17:07');
-INSERT IGNORE INTO `seed` (`id`, `variety`, `description`, `image`, `stage0_image`, `stage1_image`, `stage2_image`, `stage3_image`, `price`, `sunlight_max`, `water_max`, `nutrient_max`, `created_at`, `is_deleted`) VALUES (1,'向日葵','向阳而生，充满活力的花朵','https://example.com/seeds/sunflower.png',NULL,NULL,NULL,NULL,100,100,80,60,'2026-06-29 18:29:18',0),(2,'玫瑰','热情似火，经典浪漫之选','https://example.com/seeds/rose.png',NULL,NULL,NULL,NULL,50,90,100,70,'2026-06-29 18:29:18',0),(3,'仙人掌','坚韧不拔，耐旱易养','https://example.com/seeds/cactus.png',NULL,NULL,NULL,NULL,30,60,40,50,'2026-06-29 18:29:18',0),(4,'樱花','刹那芳华，绚烂而短暂','https://example.com/seeds/cherry.png',NULL,NULL,NULL,NULL,80,80,90,100,'2026-06-29 18:29:18',0),(5,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:24:38',0),(6,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:45:51',0),(7,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:46:35',0),(8,'兰花','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,100,100,'2026-07-01 10:46:46',0),(9,'兰','空谷幽兰','https://...','https://...','https://...','https://...','https://...',60,100,80,60,'2026-07-01 15:45:25',0);
-INSERT IGNORE INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `attribute_type`, `boost_value`, `created_at`) VALUES (1,'有机肥料','https://example.com/fertilizer.png',5,2,10,'2026-07-01 15:18:34'),(2,'纯净水','https://example.com/potion.png',10,3,10,'2026-07-01 15:18:34'),(3,'阳光精华','https://example.com/seed.png',8,1,10,'2026-07-01 15:18:34');
-INSERT IGNORE INTO `flower` (`id`, `user_id`, `seed_id`, `sunlight`, `water`, `nutrient`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES (1,2,2,0,0,0,0,3,1,'2026-06-28 13:10:16','2026-07-01 15:29:33'),(2,2,1,0,0,0,0,1,0,'2026-06-28 13:10:16','2026-07-01 15:29:33'),(3,3,2,90,100,70,90,1,0,'2026-06-28 13:10:16','2026-07-01 15:31:47'),(4,6,1,0,0,0,0,0,0,'2026-06-29 22:56:34','2026-06-29 22:56:34'),(5,3,1,0,0,0,0,0,0,'2026-07-01 15:32:37','2026-07-01 15:32:37'),(6,24,1,20,10,20,50,0,0,'2026-07-01 16:22:39','2026-07-01 16:41:58');
-INSERT IGNORE INTO `student_analysis` (`id`, `user_id`, `total_study_duration`, `assignment_correct_rate`, `week_study_duration`, `updated_at`) VALUES (1,2,14455,85.50,55,'2026-06-30 11:16:59'),(2,3,7200,70.00,1800,'2026-06-28 13:10:16');
-INSERT IGNORE INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice_status`, `notice_type`, `push_time`) VALUES (1,2,'作业批改通知','您的第一次作业已批改，得分85',1,4,'2026-06-28 13:10:16'),(2,2,'课堂提醒','第二讲将于7月8日开始，记得准时参加哦',1,1,'2026-06-28 13:10:16'),(3,3,'作业截止提醒','您的第二次作业即将截止，请尽快提交',0,2,'2026-06-28 13:10:16'),(4,2,'系统升级通知','平台将于7月1日凌晨2:00-5:00进行系统升级',1,0,'2026-06-29 10:00:00'),(5,2,'第三讲上课提醒','「英语语法入门」第三讲将于7月15日14:00开始',1,1,'2026-06-29 09:00:00'),(6,3,'新作业发布','第三次作业：过去时态练习已发布，截止日期7月20日',0,2,'2026-06-28 15:00:00'),(7,2,'作业提交提醒','王小红提交了第二次作业，等待批改',1,3,'2026-06-28 14:00:00'),(8,3,'作业批改通知','您的第一次作业已批改，得分92',1,4,'2026-06-28 11:00:00'),(9,2,'课程通知','暑期课程安排已更新，请查看最新课表',1,0,'2026-06-27 16:00:00'),(10,3,'上课提醒','「英语阅读与写作」本周五课程取消',0,1,'2026-06-27 10:00:00'),(11,26,'notice1','balilallal',1,1,'2026-07-01 14:32:19'),(12,26,'notice2','2222222',1,2,'2026-07-01 14:33:08');
-INSERT IGNORE INTO `feedback` (`id`, `user_id`, `content`, `reply_content`, `reply_time`, `status`, `created_at`) VALUES
-(1, 2, '视频播放经常卡顿，希望能优化一下', NULL, NULL, 0, '2026-07-01 10:00:00'),
-(2, 3, '提交作业后看不到提交状态，建议加个标识', '感谢反馈，已优化提交状态显示，请刷新查看', '2026-07-01 14:00:00', 1, '2026-07-01 09:30:00'),
-(3, 1, '希望在课堂上增加举手发言功能', NULL, NULL, 0, '2026-07-01 15:00:00');
 
--- 同步 user.points 与 points_record 一致
+-- 花卉
+INSERT IGNORE INTO `seed` (`id`, `variety`, `description`, `image`, `price`, `sunlight_max`, `water_max`, `nutrient_max`, `created_at`, `is_deleted`) VALUES
+(1,'向日葵','向阳而生','https://example.com/seeds/sunflower.png',0,100,80,60,'2026-06-29 18:29:18',0),
+(2,'玫瑰','热情似火','https://example.com/seeds/rose.png',50,90,100,70,'2026-06-29 18:29:18',0),
+(3,'仙人掌','耐旱易养','https://example.com/seeds/cactus.png',30,60,40,50,'2026-06-29 18:29:18',0),
+(4,'樱花','绚烂短暂','https://example.com/seeds/cherry.png',80,80,90,100,'2026-06-29 18:29:18',0);
+INSERT IGNORE INTO `flower` (`id`, `user_id`, `seed_id`, `sunlight`, `water`, `nutrient`, `growth_value`, `stage`, `is_unlocked`, `created_at`, `updated_at`) VALUES
+(1,2,2,90,80,60,230,3,1,'2026-06-28 13:10:16','2026-07-01 15:29:33'),
+(2,2,1,50,60,40,150,2,0,'2026-06-28 13:10:16','2026-07-01 15:29:33'),
+(3,3,2,90,100,70,260,3,0,'2026-06-28 13:10:16','2026-07-01 15:31:47'),
+(4,6,1,0,0,0,0,0,0,'2026-06-29 22:56:34','2026-06-29 22:56:34'),
+(5,3,1,30,40,20,90,1,0,'2026-07-01 15:32:37','2026-07-01 15:32:37'),
+(6,24,1,20,10,20,50,0,0,'2026-07-01 16:22:39','2026-07-01 16:41:58');
+INSERT IGNORE INTO `shop_item` (`id`, `item_name`, `icon`, `price`, `attribute_type`, `boost_value`, `created_at`) VALUES
+(1,'有机肥料','https://example.com/fertilizer.png',5,2,10,'2026-07-01 15:18:34'),
+(2,'纯净水','https://example.com/potion.png',10,3,10,'2026-07-01 15:18:34'),
+(3,'阳光精华','https://example.com/potion.png',8,1,10,'2026-07-01 15:18:34');
+
+-- 学情分析
+INSERT IGNORE INTO `student_analysis` (`id`, `user_id`, `total_study_duration`, `assignment_correct_rate`, `week_study_duration`, `updated_at`) VALUES
+(1,2,14455,85.50,55,'2026-06-30 11:16:59'),
+(2,3,7200,70.00,1800,'2026-06-28 13:10:16');
+
+-- 通知
+INSERT IGNORE INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, `notice_status`, `notice_type`, `push_time`) VALUES
+(1,2,'作业批改通知','第一次作业已批改，得分85',1,4,'2026-06-28 13:10:16'),
+(2,2,'课堂提醒','第二讲7月8日开始',1,1,'2026-06-28 13:10:16'),
+(3,3,'作业截止提醒','第二次作业即将截止',0,2,'2026-06-28 13:10:16'),
+(4,2,'系统升级通知','7月1日2:00-5:00系统升级',1,0,'2026-06-29 10:00:00'),
+(5,2,'上课提醒','第三讲7月15日14:00开始',1,1,'2026-06-29 09:00:00'),
+(6,3,'新作业发布','过去时态练习已发布',0,2,'2026-06-28 15:00:00'),
+(7,2,'作业提交提醒','王小红提交了第二次作业',1,3,'2026-06-28 14:00:00'),
+(8,3,'作业批改通知','第一次作业已批改，得分92',1,4,'2026-06-28 11:00:00'),
+(9,2,'课程通知','暑期课程安排已更新',1,0,'2026-06-27 16:00:00'),
+(10,3,'上课提醒','本周五课程取消',0,1,'2026-06-27 10:00:00');
+
+-- 同步积分
 UPDATE `user` u
 JOIN (SELECT user_id, left_points FROM points_record WHERE (user_id, id) IN (SELECT user_id, MAX(id) FROM points_record GROUP BY user_id)) p ON u.id = p.user_id
 SET u.points = p.left_points;
 
--- course_resource（课程资源）
+-- 课程资源 敏感词 问答
 INSERT IGNORE INTO `course_resource` (`id`, `course_id`, `user_id`, `file_name`, `file_url`, `file_size`, `description`, `download_count`, `created_at`) VALUES
-(1, 1, 1, '第一讲课件-名词与冠词.pptx', 'https://example.com/resource/ppt1.pptx', 2048000, '课堂PPT，包含名词分类和冠词用法', 3, '2026-07-01 09:00:00'),
-(2, 1, 1, '名词练习题.pdf', 'https://example.com/resource/exercise1.pdf', 512000, '课后练习，巩固名词知识点', 5, '2026-07-01 10:00:00'),
-(3, 2, 1, '范文集-我的周末.pdf', 'https://example.com/resource/essay.pdf', 102400, '优秀范文合集，供学生参考学习', 2, '2026-06-20 15:00:00');
-
--- sensitive_word（敏感词库）
-INSERT IGNORE INTO `sensitive_word` (`id`, `word`, `created_at`) VALUES
-(1, '垃圾', NOW()),
-(2, '笨蛋', NOW()),
-(3, '傻瓜', NOW()),
-(4, '滚', NOW());
-
--- course_problem（课程问答）
+(1,1,1,'第一讲课件.pptx','https://example.com/resource/ppt1.pptx',2048000,'课堂PPT',3,'2026-07-01 09:00:00'),
+(2,1,1,'名词练习题.pdf','https://example.com/resource/exercise1.pdf',512000,'课后练习',5,'2026-07-01 10:00:00'),
+(3,2,1,'范文集.pdf','https://example.com/resource/essay.pdf',102400,'范文合集',2,'2026-06-20 15:00:00');
+INSERT IGNORE INTO `sensitive_word` (`id`, `word`, `created_at`) VALUES (1,'垃圾',NOW()),(2,'笨蛋',NOW()),(3,'傻瓜',NOW()),(4,'滚',NOW());
 INSERT IGNORE INTO `course_problem` (`id`, `course_id`, `user_id`, `title`, `content`, `reply_count`, `created_at`) VALUES
-(1, 1, 2, '可数名词变复数的规则有哪些？', '老师讲了几种规则，但我记不全，能不能总结一下？', 1, '2026-07-02 10:00:00'),
-(2, 1, 3, '什么时候用 a，什么时候用 an？', '是不是只看单词的第一个字母是不是元音字母？', 1, '2026-07-03 14:00:00'),
-(3, 2, 2, '段落的主题句一定要放在第一句吗？', '有时候看到文章的主题句在最后，这样写也可以吗？', 0, '2026-07-04 09:00:00');
-
--- course_problem_reply（问答回复）
+(1,1,2,'可数名词变复数的规则？','能总结一下吗？',1,'2026-07-02 10:00:00'),
+(2,1,3,'a和an的区别？','看第一个字母吗？',1,'2026-07-03 14:00:00'),
+(3,2,2,'主题句必须放第一句？','有时在最后，可以吗？',0,'2026-07-04 09:00:00');
 INSERT IGNORE INTO `course_problem_reply` (`id`, `problem_id`, `user_id`, `content`, `created_at`) VALUES
-(1, 1, 1, '一般加 s；以 s/x/sh/ch 结尾加 es；辅音+y 变 y 为 i 加 es；以 f/fe 结尾变 f/fe 为 v 加 es。建议你做个表格来记忆！', '2026-07-02 11:00:00'),
-(2, 2, 1, '很好问题！看的是发音而不是字母。u开头的单词如 university 虽然以 u 开头，但发音是 /juː/，所以用 a 而不是 an。关键听第一个音是不是元音。', '2026-07-03 15:00:00');
-
+(1,1,1,'s/x/sh/ch加es，辅音+y改y为i加es','2026-07-02 11:00:00'),
+(2,2,1,'看发音，如university发/juː/用a','2026-07-03 15:00:00');
