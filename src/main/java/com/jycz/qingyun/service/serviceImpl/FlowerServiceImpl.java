@@ -168,6 +168,16 @@ public class FlowerServiceImpl implements FlowerService {
 
         vo.setIsUnlocked(flower.getIsUnlocked());
         vo.setCreatedAt(flower.getCreatedAt());
+
+        // 拷贝品种图片
+        if (seed != null) {
+            vo.setImage(seed.getImage());
+            vo.setStage0Image(seed.getStage0Image());
+            vo.setStage1Image(seed.getStage1Image());
+            vo.setStage2Image(seed.getStage2Image());
+            vo.setStage3Image(seed.getStage3Image());
+        }
+
         return vo;
     }
 }
