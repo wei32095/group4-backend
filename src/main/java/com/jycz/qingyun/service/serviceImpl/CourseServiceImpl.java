@@ -130,31 +130,43 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseDetailVO getCourseDetail(Long courseId, Long userId, Integer role) {
+        // 1. 查询课程
         Course course = courseMapper.selectById(courseId);
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
         }
 
+        // ✅ 定义变量
+        LocalDateTime joinedAt = null;
+
+        // 2. 权限校验
         if (role == 1) {
+            // 学生：检查是否已加入，并获取加入时间
             LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
             csWrapper.eq(CourseStudent::getCourseId, courseId)
                     .eq(CourseStudent::getUserId, userId);
-            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+            CourseStudent cs = courseStudentMapper.selectOne(csWrapper);
+            if (cs == null) {
                 throw new BusinessException(403, "您未加入该课程，无权查看");
             }
+            joinedAt = cs.getJoinedAt();  // ← 赋值
         } else if (role == 2) {
+            // 教师：只能看自己的课程
             if (!course.getUserId().equals(userId)) {
                 throw new BusinessException(403, "您不是该课程的教师，无权查看");
             }
         } else if (role == 3) {
+            // 管理员：可以看所有课程
         } else {
             throw new BusinessException(403, "无权查看");
         }
 
+        // 3. 获取教师信息
         User teacher = userMapper.selectById(course.getUserId());
         String teacherName = (teacher != null) ? teacher.getName() : "未知老师";
         String teacherAvatar = (teacher != null) ? teacher.getAvatar() : null;
 
+        // 4. 返回
         return CourseDetailVO.builder()
                 .id(course.getId())
                 .courseTitle(course.getCourseTitle())
@@ -163,8 +175,10 @@ public class CourseServiceImpl implements CourseService {
                 .studentCount(course.getStudentCount())
                 .courseCode(course.getCourseCode())
                 .status(course.getStatus())
+
                 .teacherName(teacherName)
                 .teacherAvatar(teacherAvatar)
+                .joinedAt(joinedAt)        // ← 使用变量
                 .createdAt(course.getCreatedAt())
                 .build();
     }
