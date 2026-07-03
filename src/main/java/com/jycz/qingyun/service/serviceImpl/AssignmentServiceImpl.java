@@ -56,12 +56,15 @@ public class AssignmentServiceImpl implements AssignmentService {
         if (!course.getUserId().equals(teacherId)) {
             throw new BusinessException(403, "您不是该课程的教师，无权发布作业");
         }
+        int totalScore = request.getQuestions().stream()
+                .mapToInt(AssignmentCreateRequest.QuestionRequest::getPerscore)
+                .sum();
 
         Assignment assignment = new Assignment();
         assignment.setCourseId(request.getCourseId());
         assignment.setAssignmentTitle(request.getAssignmentTitle());
         assignment.setDeadline(request.getDeadline());
-        assignment.setMaxScore(request.getMaxScore());
+        assignment.setMaxScore(totalScore);
 
         assignment.setAssignmentCreateTime(LocalDateTime.now());
         assignment.setUpdatedAt(LocalDateTime.now());
