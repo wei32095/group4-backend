@@ -210,10 +210,20 @@ public class AssignmentServiceImpl implements AssignmentService {
         List<ObjectSubmit> objectSubmits = objectSubmitMapper.selectByAssignmentAndUser(assignmentId, userId);
         List<SubjectSubmit> subjectSubmits = subjectSubmitMapper.selectByAssignmentAndUser(assignmentId, userId);
 
+        // ✅ 修改：重复 key 时保留最新的记录
         Map<Long, ObjectSubmit> objectSubmitMap = objectSubmits.stream()
-                .collect(Collectors.toMap(ObjectSubmit::getQuestionId, o -> o));
+                .collect(Collectors.toMap(
+                        ObjectSubmit::getQuestionId,
+                        o -> o,
+                        (existing, replacement) -> replacement
+                ));
+
         Map<Long, SubjectSubmit> subjectSubmitMap = subjectSubmits.stream()
-                .collect(Collectors.toMap(SubjectSubmit::getQuestionId, s -> s));
+                .collect(Collectors.toMap(
+                        SubjectSubmit::getQuestionId,
+                        s -> s,
+                        (existing, replacement) -> replacement
+                ));
 
         List<AssignmentDetailVO.QuestionDetailVO> questionDetails = new ArrayList<>();
         int totalAutoScore = 0;
@@ -221,7 +231,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         boolean allGraded = true;
 
         for (Question q : questions) {
-            // ========== 新增：解析 options ==========
             List<String> optionsList = new ArrayList<>();
             if (q.getType() == 1 || q.getType() == 2) {
                 if (q.getOptions() != null && !q.getOptions().isEmpty()) {
@@ -233,18 +242,16 @@ public class AssignmentServiceImpl implements AssignmentService {
                     }
                 }
             }
-            // ========== 新增结束 ==========
 
             AssignmentDetailVO.QuestionDetailVO.QuestionDetailVOBuilder builder =
                     AssignmentDetailVO.QuestionDetailVO.builder()
-
                             .type(q.getType())
                             .stem(q.getStem())
                             .perscore(q.getPerscore())
                             .sortOrder(q.getSortOrder())
                             .imageUrl(q.getImageUrl())
                             .explanation(q.getExplanation())
-                            .options(optionsList);  // ← 使用解析出来的选项
+                            .options(optionsList);
 
             if (q.getType() != 5) {
                 ObjectSubmit os = objectSubmitMap.get(q.getId());
@@ -312,6 +319,20 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         if (LocalDateTime.now().isAfter(assignment.getDeadline())) {
             throw new BusinessException(400, "已超过截止时间，无法提交");
+        }
+
+        LambdaQueryWrapper<ObjectSubmit> objWrapper = new LambdaQueryWrapper<>();
+        objWrapper.eq(ObjectSubmit::getAssignmentId, request.getAssignmentId())
+                .eq(ObjectSubmit::getUserId, studentId);
+        long objCount = objectSubmitMapper.selectCount(objWrapper);
+
+        LambdaQueryWrapper<SubjectSubmit> subWrapper = new LambdaQueryWrapper<>();
+        subWrapper.eq(SubjectSubmit::getAssignmentId, request.getAssignmentId())
+                .eq(SubjectSubmit::getUserId, studentId);
+        long subCount = subjectSubmitMapper.selectCount(subWrapper);
+
+        if (objCount > 0 || subCount > 0) {
+            throw new BusinessException(409, "您已提交过该作业，请勿重复提交");
         }
 
         LambdaQueryWrapper<Question> qWrapper = new LambdaQueryWrapper<>();
@@ -600,5 +621,100 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .maxScore(assignment.getMaxScore())
                 .list(list)
                 .build();
+    }
+
+    @Override
+    public List<PendingAssignmentVO> getPendingAssignments(Long courseId, Long studentId, Long teacherId) {
+        // 1. 校验教师是否有权限（是该课程的教师）
+        Course course = courseMapper.selectById(courseId);
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
+        }
+        if (!course.getUserId().equals(teacherId)) {
+            throw new BusinessException(403, "您不是该课程的教师");
+        }
+
+        // 2. 查询该课程下所有作业
+        LambdaQueryWrapper<Assignment> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Assignment::getCourseId, courseId)
+                .orderByDesc(Assignment::getAssignmentCreateTime);
+        List<Assignment> assignments = assignmentMapper.selectList(wrapper);
+
+        if (assignments.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> assignmentIds = assignments.stream()
+                .map(Assignment::getId)
+                .collect(Collectors.toList());
+
+        // 3. 查询该学生所有主观题提交记录（待批改：grading_status = 1）
+        List<SubjectSubmit> subjectSubmits = subjectSubmitMapper.selectList(
+                new LambdaQueryWrapper<SubjectSubmit>()
+                        .in(SubjectSubmit::getAssignmentId, assignmentIds)
+                        .eq(SubjectSubmit::getUserId, studentId)
+                        .eq(SubjectSubmit::getGradingStatus, 1)  // 待批改
+        );
+
+        if (subjectSubmits.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 4. 按作业分组
+        Map<Long, List<SubjectSubmit>> submitMap = subjectSubmits.stream()
+                .collect(Collectors.groupingBy(SubjectSubmit::getAssignmentId));
+
+        // 5. 查询题目信息
+        List<Long> questionIds = subjectSubmits.stream()
+                .map(SubjectSubmit::getQuestionId)
+                .collect(Collectors.toList());
+        Map<Long, Question> questionMap = questionMapper.selectBatchIds(questionIds).stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
+        // 6. 组装结果
+        List<PendingAssignmentVO> result = new ArrayList<>();
+
+        for (Assignment assignment : assignments) {
+            List<SubjectSubmit> submits = submitMap.get(assignment.getId());
+            if (submits == null || submits.isEmpty()) {
+                continue;
+            }
+
+            // 获取该作业的所有待批改主观题
+            List<PendingAssignmentVO.SubjectiveQuestionVO> questions = new ArrayList<>();
+            for (SubjectSubmit ss : submits) {
+                Question q = questionMap.get(ss.getQuestionId());
+                if (q != null) {
+                    questions.add(PendingAssignmentVO.SubjectiveQuestionVO.builder()
+
+                            .sortOrder(q.getSortOrder())
+                            .stem(q.getStem())
+                            .perscore(q.getPerscore())
+                            .answerPicture(ss.getAnswerPicture())
+                            .gradingStatus(ss.getGradingStatus())
+                            .build());
+                }
+            }
+
+            if (questions.isEmpty()) {
+                continue;
+            }
+
+            // 获取学生提交时间（取第一个主观题提交时间）
+            LocalDateTime submitTime = submits.get(0).getFinishTime();
+
+            result.add(PendingAssignmentVO.builder()
+                    .assignmentId(assignment.getId())
+                    .assignmentTitle(assignment.getAssignmentTitle())
+                    .courseId(assignment.getCourseId())
+                    .courseName(course.getCourseTitle())
+                    .deadline(assignment.getDeadline())
+                    .maxScore(assignment.getMaxScore())
+                    .submitTime(submitTime)
+                    .subjectiveQuestions(questions)
+                    .build());
+        }
+
+        return result;
     }
 }

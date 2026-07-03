@@ -23,4 +23,6 @@ public interface AssignmentService {
 
     // ========== 新增 ==========
     AssignmentStudentGradeVO getStudentGrades(Long assignmentId, Long teacherId);
+
+    List<PendingAssignmentVO> getPendingAssignments(Long courseId, Long studentId, Long teacherId);
 }
