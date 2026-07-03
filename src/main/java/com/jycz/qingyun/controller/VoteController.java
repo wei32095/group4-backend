@@ -72,7 +72,7 @@ public class VoteController {
         return ApiResult.success(response);
     }
 
-    @GetMapping("list")
+    @GetMapping("/list")
     public ApiResult<List<VoteListVO>> getActiveVoteList(
             @RequestParam Long classId,
             HttpServletRequest httpRequest) {
