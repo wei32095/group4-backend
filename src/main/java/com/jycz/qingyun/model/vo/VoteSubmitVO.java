@@ -10,4 +10,5 @@ public class VoteSubmitVO {//
     private Long voteId;
     private String selectedOption;
     private Integer isCorrect;
+    private String correctOption;
 }
