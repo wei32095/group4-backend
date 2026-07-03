@@ -59,6 +59,8 @@ public class CourseServiceImpl implements CourseService {
         course.setStatus("pending");
         course.setAuditStatus(0);
 
+        course.setCreatedAt(LocalDateTime.now());
+        course.setUpdatedAt(LocalDateTime.now());
         courseMapper.insert(course);
         log.info("课程创建成功: courseId={}, courseCode={}，, 等待管理员审核", course.getId(), courseCode);
 
