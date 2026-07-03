@@ -42,13 +42,17 @@ public class AnalysisServiceImpl implements AnalysisService {
         // 2. 每门课程学习统计
         List<StudentAnalysisVO.CourseStatVO> courseStats = getCourseStats(userId);
 
-        // 3. 周期报告
-        StudentAnalysisVO.PeriodReportVO periodReport = getPeriodReport(userId, periodType);
+        // 3. 本周报告
+        StudentAnalysisVO.PeriodReportVO weekReport = getPeriodReport(userId, "week");
+
+        // 4. 本月报告
+        StudentAnalysisVO.PeriodReportVO monthReport = getPeriodReport(userId, "month");
 
         return StudentAnalysisVO.builder()
                 .overview(overview)
                 .courseStats(courseStats)
-                .periodReport(periodReport)
+                .weekReport(weekReport)
+                .monthReport(monthReport)
                 .build();
     }
 
