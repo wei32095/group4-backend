@@ -63,8 +63,15 @@ public class FileController {
             HttpServletResponse response) {
 
         try {
-            String signedUrl = ossService.getSignedUrl(path);
-            URL url = new URL(signedUrl);
+            // 判断 path 类型：OSS key 还是完整 URL
+            String targetUrl;
+            if (path.startsWith("http://") || path.startsWith("https://")) {
+                targetUrl = path; // 外部/过期URL，直接代理
+            } else {
+                targetUrl = ossService.getSignedUrl(path); // OSS key，生成签名
+            }
+
+            URL url = new URL(targetUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(5000);

@@ -1,6 +1,7 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.jycz.qingyun.config.AliyunOssConfig;
 import com.jycz.qingyun.mapper.FlowerMapper;
 import com.jycz.qingyun.mapper.SeedMapper;
 import com.jycz.qingyun.model.entity.Flower;
@@ -9,10 +10,12 @@ import com.jycz.qingyun.model.vo.FlowerListVO;
 import com.jycz.qingyun.model.vo.FlowerVO;
 import com.jycz.qingyun.service.FlowerService;
 import com.jycz.qingyun.service.PointsRecordService;
+import com.jycz.qingyun.utils.BusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +33,9 @@ public class FlowerServiceImpl implements FlowerService {
     @Autowired
     private PointsRecordService pointsRecordService;
 
+    @Autowired
+    private AliyunOssConfig aliyunOssConfig;
+
     @Override
     public FlowerListVO getMyFlowers(Long userId) {
         // 1. 查询用户所有花卉
@@ -38,6 +44,12 @@ public class FlowerServiceImpl implements FlowerService {
                 .orderByDesc(Flower::getCreatedAt);
 
         List<Flower> flowers = flowerMapper.selectList(wrapper);
+
+        if (flowers.isEmpty()) {
+            FlowerListVO empty = new FlowerListVO();
+            empty.setRecords(List.of());
+            return empty;
+        }
 
         // 2. 批量查询品种信息
         List<Long> seedIds = flowers.stream()
@@ -63,7 +75,7 @@ public class FlowerServiceImpl implements FlowerService {
     @Override
     @Transactional
     public FlowerVO plant(Long userId, Long seedId) {
-        // 1. 查找用户最新的花卉（按创建时间倒序）
+        // 1. 查找用户最新的花卉
         LambdaQueryWrapper<Flower> wrapper = new LambdaQueryWrapper<Flower>()
                 .eq(Flower::getUserId, userId)
                 .orderByDesc(Flower::getCreatedAt)
@@ -71,54 +83,39 @@ public class FlowerServiceImpl implements FlowerService {
         List<Flower> flowerList = flowerMapper.selectList(wrapper);
         Flower currentFlower = flowerList.isEmpty() ? null : flowerList.get(0);
 
-        // 2. 首次使用 → 免费送向日葵
-        if (currentFlower == null) {
-            Seed sunflower = seedMapper.selectById(1L);
-            if (sunflower == null) {
-                throw new RuntimeException("暂无可用品种");
-            }
-
-            Flower flower = new Flower();
-            flower.setUserId(userId);
-            flower.setSeedId(sunflower.getId());
-            flower.setSunlight(0);
-            flower.setWater(0);
-            flower.setNutrient(0);
-            flower.setGrowthValue(0);
-            flower.setStage(0);
-            flower.setIsUnlocked(0);
-            flower.setCreatedAt(LocalDateTime.now());
-            flower.setUpdatedAt(LocalDateTime.now());
-            flowerMapper.insert(flower);
-
-            return toVO(flower, sunflower);
-        }
-
-        // 3. 已有花卉 → 检查是否已开花（stage=3 → growthPercent >= 75）
-        Seed currentSeed = seedMapper.selectById(currentFlower.getSeedId());
-        if (currentSeed != null) {
-            int totalMax = currentSeed.getSunlightMax() + currentSeed.getWaterMax() + currentSeed.getNutrientMax();
-            int totalCur = currentFlower.getSunlight() + currentFlower.getWater() + currentFlower.getNutrient();
+        // 2. 已有花卉 → 检查是否已培育完成
+        if (currentFlower != null) {
+            Seed currentSeed = seedMapper.selectById(currentFlower.getSeedId());
+            int sunMax = currentSeed != null && currentSeed.getSunlightMax() != null ? currentSeed.getSunlightMax() : 100;
+            int waterMax = currentSeed != null && currentSeed.getWaterMax() != null ? currentSeed.getWaterMax() : 100;
+            int nutMax = currentSeed != null && currentSeed.getNutrientMax() != null ? currentSeed.getNutrientMax() : 100;
+            int totalMax = sunMax + waterMax + nutMax;
+            int totalCur = (currentFlower.getSunlight() != null ? currentFlower.getSunlight() : 0)
+                         + (currentFlower.getWater() != null ? currentFlower.getWater() : 0)
+                         + (currentFlower.getNutrient() != null ? currentFlower.getNutrient() : 0);
             int percent = totalMax > 0 ? totalCur * 100 / totalMax : 0;
-            if (percent < 75) {
-                throw new RuntimeException("当前花卉尚未培育完成，无法购买新种子");
+            if (percent < 100) {
+                throw new BusinessException(400, "当前花卉尚未培育完成，无法购买新种子");
             }
-        } else {
-            if (currentFlower.getGrowthValue() < 100) {
-                throw new RuntimeException("当前花卉尚未培育完成，无法购买新种子");
+            // 满值 → 自动解锁图鉴
+            if (currentFlower.getIsUnlocked() == null || currentFlower.getIsUnlocked() == 0) {
+                currentFlower.setIsUnlocked(1);
+                flowerMapper.updateById(currentFlower);
             }
         }
 
-        // 4. 验证要购买的种子
+        // 3. 验证种子
         Seed targetSeed = seedMapper.selectById(seedId);
         if (targetSeed == null) {
-            throw new RuntimeException("种子不存在");
+            throw new BusinessException(404, "种子不存在");
         }
 
-        // 5. 扣积分
-        pointsRecordService.deductPoints(userId, targetSeed.getPrice(), 5);
+        // 4. 扣积分（price=0 不扣）
+        if (targetSeed.getPrice() > 0) {
+            pointsRecordService.deductPoints(userId, targetSeed.getPrice(), 5);
+        }
 
-        // 6. 创建新花卉
+        // 5. 创建新花卉
         Flower newFlower = new Flower();
         newFlower.setUserId(userId);
         newFlower.setSeedId(targetSeed.getId());
@@ -169,15 +166,36 @@ public class FlowerServiceImpl implements FlowerService {
         vo.setIsUnlocked(flower.getIsUnlocked());
         vo.setCreatedAt(flower.getCreatedAt());
 
-        // 拷贝品种图片
+        // 拷贝品种图片（解析 OSS key）
         if (seed != null) {
-            vo.setImage(seed.getImage());
-            vo.setStage0Image(seed.getStage0Image());
-            vo.setStage1Image(seed.getStage1Image());
-            vo.setStage2Image(seed.getStage2Image());
-            vo.setStage3Image(seed.getStage3Image());
+            vo.setImage(resolveOssKey(seed.getImage()));
+            vo.setStage0Image(resolveOssKey(seed.getStage0Image()));
+            vo.setStage1Image(resolveOssKey(seed.getStage1Image()));
+            vo.setStage2Image(resolveOssKey(seed.getStage2Image()));
+            vo.setStage3Image(resolveOssKey(seed.getStage3Image()));
         }
 
         return vo;
+    }
+
+    /**
+     * 从 OSS 签名 URL 中提取文件 key，非 OSS URL 原样返回
+     */
+    private String resolveOssKey(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return null;
+        if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+            return imageUrl;
+        }
+        try {
+            URL url = new URL(imageUrl);
+            String host = url.getHost();
+            if (host != null && host.contains(aliyunOssConfig.getBucket() + ".")) {
+                String path = url.getPath();
+                return path.startsWith("/") ? path.substring(1) : path;
+            }
+        } catch (Exception e) {
+            // 非 OSS URL，原样返回
+        }
+        return imageUrl;
     }
 }
