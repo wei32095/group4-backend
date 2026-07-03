@@ -99,7 +99,7 @@ CREATE TABLE `class` (
     `user_id` BIGINT NOT NULL COMMENT '老师ID',
     `class_title` VARCHAR(100) NOT NULL COMMENT '课堂名称',
     `file_url` VARCHAR(500) DEFAULT NULL COMMENT '课件附件地址',
-    `end_time` DATETIME NOT NULL COMMENT '结束时间',
+    `end_time` DATETIME DEFAULT NULL COMMENT '课堂结束时间',
     `status` VARCHAR(20) DEFAULT 'not_started' COMMENT '状态：not_started-未开始，active-进行中，ended-已结束',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
