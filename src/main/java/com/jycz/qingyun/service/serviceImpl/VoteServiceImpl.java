@@ -140,6 +140,7 @@ public class VoteServiceImpl implements VoteService {
         return VoteSubmitVO.builder()
                 .voteId(request.getVoteId())
                 .selectedOption(request.getSelectedOption())
+                .correctOption(vote.getCorrectOption())
                 .isCorrect(isCorrect)
                 .correctOption(vote.getCorrectOption())
                 .build();
