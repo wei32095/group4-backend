@@ -9,7 +9,7 @@ import com.jycz.qingyun.model.entity.Class;
 import com.jycz.qingyun.model.entity.ClassVote;
 import com.jycz.qingyun.model.entity.CourseStudent;
 import com.jycz.qingyun.model.entity.VoteRecord;
-import com.jycz.qingyun.model.vo.VoteActiveListVO;
+import com.jycz.qingyun.model.vo.VoteListVO;
 import com.jycz.qingyun.model.vo.VoteCreateVO;
 import com.jycz.qingyun.model.vo.VoteResultVO;
 import com.jycz.qingyun.model.vo.VoteSubmitVO;
@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-
+import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class VoteServiceImpl implements VoteService {
     private final ClassVoteMapper classVoteMapper;
     private final ClassMapper classMapper;
     private final VoteRecordMapper voteRecordMapper;
-    private final CourseStudentMapper courseStudentMapper;  // ← 新增
+    private final CourseStudentMapper courseStudentMapper;
     private final ObjectMapper objectMapper;
     private final PointsRecordService pointsRecordService;
 
@@ -94,15 +94,18 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @Transactional
     public VoteSubmitVO submitVote(VoteSubmitRequest request, Long studentId) {
+        // 1. 查询投票
         ClassVote vote = classVoteMapper.selectById(request.getVoteId());
         if (vote == null) {
             throw new BusinessException(404, "投票不存在");
         }
 
+        // 2. ✅ 校验投票是否已结束（直接比较时间）
         if (vote.getEndedAt() != null && LocalDateTime.now().isAfter(vote.getEndedAt())) {
             throw new BusinessException(400, "投票已结束");
         }
 
+        // 3. 检查是否已投过票
         LambdaQueryWrapper<VoteRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(VoteRecord::getVoteId, request.getVoteId())
                 .eq(VoteRecord::getUserId, studentId);
@@ -110,12 +113,14 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(409, "您已投过票");
         }
 
+        // 4. 判断是否正确
         Integer isCorrect = 0;
         if (vote.getCorrectOption() != null &&
                 vote.getCorrectOption().equals(request.getSelectedOption())) {
             isCorrect = 1;
         }
 
+        // 5. 保存投票记录
         VoteRecord record = new VoteRecord();
         record.setVoteId(request.getVoteId());
         record.setUserId(studentId);
@@ -124,6 +129,7 @@ public class VoteServiceImpl implements VoteService {
         record.setSubmittedAt(LocalDateTime.now());
         voteRecordMapper.insert(record);
 
+        // 6. 投票正确积分处理
         if (isCorrect == 1) {
             pointsRecordService.handleVoteCorrectPoints(studentId);
         }
@@ -204,9 +210,9 @@ public class VoteServiceImpl implements VoteService {
                 .build();
     }
 
-    // ========== 获取课堂全部投票列表 ==========
+    // ========== 新增：获取当前所有活跃投票 ==========
     @Override
-    public List<VoteActiveListVO> getActiveVoteList(Long classId, Long studentId) {
+    public List<VoteListVO> getVoteList(Long classId, Long studentId) {
         // 1. 查询课堂是否存在
         Class clazz = classMapper.selectById(classId);
         if (clazz == null) {
@@ -221,7 +227,7 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(403, "您未加入该课程");
         }
 
-        // 3. 查询该课堂全部投票（按时间倒序）
+        // 3. 查询该课堂所有投票
         LambdaQueryWrapper<ClassVote> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ClassVote::getClassId, classId)
                 .orderByDesc(ClassVote::getCreatedAt);
@@ -232,7 +238,7 @@ public class VoteServiceImpl implements VoteService {
         }
 
         // 4. 获取该学生已投票的记录
-        List<Long> voteIds = votes.stream().map(ClassVote::getId).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        List<Long> voteIds = votes.stream().map(ClassVote::getId).collect(Collectors.toList());
         LambdaQueryWrapper<VoteRecord> recordWrapper = new LambdaQueryWrapper<>();
         recordWrapper.in(VoteRecord::getVoteId, voteIds)
                 .eq(VoteRecord::getUserId, studentId);
@@ -243,7 +249,7 @@ public class VoteServiceImpl implements VoteService {
         }
 
         // 5. 组装结果
-        List<VoteActiveListVO> result = new ArrayList<>();
+        List<VoteListVO> result = new ArrayList<>();
         for (ClassVote vote : votes) {
             List<String> options;
             try {
@@ -252,11 +258,16 @@ public class VoteServiceImpl implements VoteService {
                 continue;
             }
 
-            result.add(VoteActiveListVO.builder()
+            String status = vote.getStatus();
+            if (vote.getEndedAt() != null && LocalDateTime.now().isAfter(vote.getEndedAt())) {
+                status = "ended";
+            }
+
+            result.add(VoteListVO.builder()
                     .voteId(vote.getId())
                     .heading(vote.getHeading())
                     .options(options)
-                    .status(vote.getStatus())
+                    .status(status)  // ← 用动态计算的
                     .endedAt(vote.getEndedAt())
                     .hasVoted(votedVoteIds.contains(vote.getId()))
                     .build());
