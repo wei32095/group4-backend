@@ -99,14 +99,13 @@ CREATE TABLE `class` (
     `user_id` BIGINT NOT NULL COMMENT '老师ID',
     `class_title` VARCHAR(100) NOT NULL COMMENT '课堂名称',
     `file_url` VARCHAR(500) DEFAULT NULL COMMENT '课件附件地址',
-    `start_time` DATETIME NOT NULL COMMENT '开始时间',
     `end_time` DATETIME NOT NULL COMMENT '结束时间',
     `status` VARCHAR(20) DEFAULT 'not_started' COMMENT '状态：not_started-未开始，active-进行中，ended-已结束',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_course_id` (`course_id`),
     KEY `idx_user_id` (`user_id`),
-    KEY `idx_status_time` (`status`,`start_time`,`end_time`)
+    KEY `idx_status_time` (`status`,`create_time`,`end_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课堂表';
 
 
@@ -477,7 +476,7 @@ INSERT IGNORE INTO `user` (`id`, `name`, `password`, `phone`, `bio`, `avatar`, `
 INSERT IGNORE INTO `course` (`id`, `user_id`, `course_title`, `description`, `cover`, `student_count`, `course_code`, `status`, `created_at`, `updated_at`, `audit_status`, `audit_remark`, `audit_time`) VALUES (1,1,'英语语法入门','从词性到时态，轻松掌握英语语法基础','https://example.com/course1.jpg',2,'ENG2026','active','2026-06-28 13:10:15','2026-06-28 13:10:15',0,'',NULL),(2,1,'英语阅读与写作','通过趣味短文学习地道表达，提升写作能力','https://example.com/course2.jpg',2,'WRITE2026','active','2026-06-28 13:10:15','2026-06-30 16:53:47',1,'',NULL);
 INSERT IGNORE INTO `course_student` (`id`, `course_id`, `user_id`, `joined_at`) VALUES (1,1,2,'2026-06-28 13:10:15'),(2,1,3,'2026-06-28 13:10:15'),(3,2,2,'2026-06-28 13:10:15'),(4,2,24,'2026-06-30 16:54:00');
 INSERT IGNORE INTO `course_review` (`id`, `course_id`, `user_id`, `star`, `review_content`, `likecount`, `review_create_time`) VALUES (1,1,2,5,'老师讲得很清楚，原来语法也可以这么有趣！',3,'2026-06-28 13:10:16'),(2,1,3,4,'内容很好，要是能多些练习就更棒了',1,'2026-06-28 13:10:16');
-INSERT IGNORE INTO `class` (`id`, `course_id`, `user_id`, `class_title`, `file_url`, `start_time`, `end_time`, `status`, `create_time`) VALUES (1,1,1,'第一讲：名词与冠词——认识事物的名字','https://example.com/ppt1.pptx','2026-07-01 09:00:00','2026-07-01 11:00:00','ended','2026-06-29 15:07:22'),(2,1,1,'第二讲：动词与时态——描述动作的发生','https://example.com/ppt2.pptx','2026-07-08 09:00:00','2026-07-08 11:00:00','active','2026-06-29 15:07:22'),(3,2,1,'第一讲：如何写好一个段落',NULL,'2026-06-20 14:00:00','2026-06-20 16:00:00','ended','2026-06-29 15:07:22');
+INSERT IGNORE INTO `class` (`id`, `course_id`, `user_id`, `class_title`, `file_url`, `end_time`, `status`, `create_time`) VALUES (1,1,1,'第一讲：名词与冠词——认识事物的名字','https://example.com/ppt1.pptx','2026-07-01 11:00:00','ended','2026-06-29 15:07:22'),(2,1,1,'第二讲：动词与时态——描述动作的发生','https://example.com/ppt2.pptx','2026-07-08 11:00:00','active','2026-06-29 15:07:22'),(3,2,1,'第一讲：如何写好一个段落',NULL,'2026-06-20 16:00:00','ended','2026-06-29 15:07:22');
 INSERT IGNORE INTO `assignment` (`id`, `course_id`, `assignment_title`, `deadline`, `max_score`, `student_status`, `assignment_create_time`, `updated_at`) VALUES (1,1,'第一次作业：名词分类练习','2026-07-05 23:59:59',100,'SUBMITTED','2026-06-28 13:10:16','2026-06-28 13:10:16'),(2,1,'第二次作业：一般现在时造句','2026-07-15 23:59:59',100,'PENDING','2026-06-28 13:10:16','2026-06-28 13:10:16'),(3,2,'段落写作：我的周末','2026-07-25 23:59:59',50,'OVERDUE','2026-06-28 13:10:16','2026-07-01 16:35:41');
 INSERT IGNORE INTO `question` (`id`, `assignment_id`, `type`, `stem`, `answer`, `explanation`, `perscore`, `sort_order`) VALUES (1,1,1,'下列哪个单词是可数名词？','C','apple（苹果）是可数名词，可以说 an apple',5,1),(2,1,2,'以下哪些是不可数名词？','A,B,D','water/rice/milk 都是不可数名词',10,2),(3,1,3,'不定冠词 "an" 用于以元音音素开头的单词前。','正确','an apple, an hour（h不发音）',5,3),(4,1,5,'请写出5个不可数名词，并用每个词造一个简单的英文句子。','略（主观题）',NULL,20,4),(5,2,1,'"He _____ to school every day." 应该填什么？','C','He 是第三人称单数，动词要用 goes',10,1),(6,2,5,'请用一般现在时写一段话介绍你的日常生活（至少5句话）。',NULL,NULL,30,2),(7,3,1,'段落写作中，主题句通常放在段落的什么位置？','B','主题句通常放在段落开头，概括全段大意',5,1),(8,3,4,'英语写作中，段落之间用来连接思路的词叫做______词。','过渡','过渡词（transition words）如 however, therefore',5,2),(9,3,5,'请以"My Favorite Season"为题，写一篇80词左右的短文。',NULL,NULL,20,3);
 INSERT IGNORE INTO `object_submit` (`id`, `assignment_id`, `question_id`, `user_id`, `object_score`, `answer_word`, `submit_time`) VALUES (1,1,1,2,5,'C','2026-06-28 13:10:16'),(2,1,2,2,10,'A,B,D','2026-06-28 13:10:16'),(3,1,3,2,0,'正确','2026-06-28 13:10:16'),(4,3,7,2,5,'B','2026-06-28 13:10:16'),(5,3,8,2,5,'过渡','2026-06-28 13:10:16');
