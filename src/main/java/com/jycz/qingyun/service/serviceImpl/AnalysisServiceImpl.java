@@ -410,4 +410,6 @@ public class AnalysisServiceImpl implements AnalysisService {
         long cur = current != null ? current : 0;
         return Math.round((double) (cur - previous) / previous * 10000) / 100.0;
     }
+
+
 }

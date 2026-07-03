@@ -24,17 +24,20 @@ public class AssignmentDetailVO {
     @Data
     @Builder
     public static class QuestionDetailVO {
-        private Integer sortOrd;
+        private Integer sortOrder;
         private Integer type;
+
         private String stem;
+        private String imageUrl;
+
         private List<String> options;
         private Integer perscore;
-        private Integer sortOrder;
         private String myAnswer;
         private Boolean isCorrect;
         private Integer score;
+
         private String explanation;
         private String teacherComment;
-        private String imageUrl;
+
     }
 }
