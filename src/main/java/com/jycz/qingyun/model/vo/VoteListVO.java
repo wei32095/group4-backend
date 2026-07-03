@@ -15,5 +15,9 @@ public class VoteListVO {
     private List<String> options;
     private String status;
     private LocalDateTime endedAt;
+
+    private String selectedOption;
+    private String correctOption;
     private Boolean hasVoted;
+
 }
