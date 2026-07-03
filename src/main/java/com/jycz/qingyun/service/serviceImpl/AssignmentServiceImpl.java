@@ -1,7 +1,9 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jycz.qingyun.config.AliyunOssConfig;
 import com.jycz.qingyun.model.dto.AssignmentCreateRequest;
 import com.jycz.qingyun.model.dto.AssignmentGradeRequest;
 import com.jycz.qingyun.model.dto.AssignmentSubmitRequest;
@@ -17,10 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import com.fasterxml.jackson.core.type.TypeReference;
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final CourseMapper courseMapper;  // ← 新增
     private final NoticeService noticeService;  // ← 新增
     private final PointsRecordService pointsRecordService;  // ← 新增
+    private final AliyunOssConfig aliyunOssConfig;
     @Override
     @Transactional
     public AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId) {
@@ -84,7 +87,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             question.setExplanation(qr.getExplanation());
             question.setPerscore(qr.getPerscore());
             question.setSortOrder(sortOrder++);
-            question.setImageUrl(qr.getImageUrl());
+            question.setImageUrl(resolveOssKey(qr.getImageUrl()));
             questionMapper.insert(question);
         }
 
@@ -249,7 +252,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                             .stem(q.getStem())
                             .perscore(q.getPerscore())
                             .sortOrder(q.getSortOrder())
-                            .imageUrl(q.getImageUrl())
+                            .imageUrl(resolveOssKey(q.getImageUrl()))
                             .explanation(q.getExplanation())
                             .options(optionsList);
 
@@ -716,5 +719,29 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         return result;
+    }
+
+    /**
+     * 从 OSS 签名 URL 中提取文件 key（路径），非 OSS URL 原样返回
+     * 新数据只存 key，老数据兼容完整签名 URL
+     */
+    private String resolveOssKey(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return null;
+        // 已是 key（非 URL），直接返回
+        if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+            return imageUrl;
+        }
+        // 完整 URL → 提取 key
+        try {
+            URL url = new URL(imageUrl);
+            String host = url.getHost();
+            if (host != null && host.contains(aliyunOssConfig.getBucket() + ".")) {
+                String path = url.getPath();
+                return path.startsWith("/") ? path.substring(1) : path;
+            }
+        } catch (Exception e) {
+            log.warn("解析 OSS URL 失败: {}", imageUrl);
+        }
+        return imageUrl;
     }
 }
