@@ -3,7 +3,7 @@ package com.jycz.qingyun.controller;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.VoteCreateRequest;
 import com.jycz.qingyun.model.dto.VoteSubmitRequest;
-import com.jycz.qingyun.model.vo.VoteActiveListVO;
+import com.jycz.qingyun.model.vo.VoteListVO;
 import com.jycz.qingyun.model.vo.VoteCreateVO;
 import com.jycz.qingyun.model.vo.VoteResultVO;
 import com.jycz.qingyun.model.vo.VoteSubmitVO;
@@ -72,8 +72,8 @@ public class VoteController {
         return ApiResult.success(response);
     }
 
-    @GetMapping("/active-list")
-    public ApiResult<List<VoteActiveListVO>> getActiveVoteList(
+    @GetMapping("list")
+    public ApiResult<List<VoteListVO>> getActiveVoteList(
             @RequestParam Long classId,
             HttpServletRequest httpRequest) {
 
@@ -84,7 +84,7 @@ public class VoteController {
             return ApiResult.error(403, "仅学生可查看");
         }
 
-        List<VoteActiveListVO> response = voteService.getActiveVoteList(classId, userId);
+        List<VoteListVO> response = voteService.getVoteList(classId, userId);
         return ApiResult.success(response);
     }
 }
