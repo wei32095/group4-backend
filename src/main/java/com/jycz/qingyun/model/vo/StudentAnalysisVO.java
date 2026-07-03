@@ -11,7 +11,8 @@ public class StudentAnalysisVO {
 
     private OverviewVO overview;
     private List<CourseStatVO> courseStats;
-    private PeriodReportVO periodReport;
+    private PeriodReportVO weekReport;    // ← 本周报告
+    private PeriodReportVO monthReport;   // ← 本月报告
 
     @Data
     @Builder
@@ -26,24 +27,24 @@ public class StudentAnalysisVO {
     public static class CourseStatVO {
         private Long courseId;
         private String courseName;
-        private Long totalStudyDuration;      // 秒
+        private Long totalStudyDuration;
         private Integer assignmentCompletedCount;
-        private Double assignmentCorrectRate; // 百分比
+        private Double assignmentCorrectRate;
     }
 
     @Data
     @Builder
     public static class PeriodReportVO {
-        private Long studyDuration;           // 秒（课堂 + 自习室）
+        private Long studyDuration;
         private Integer assignmentCompletedCount;
-        private Double assignmentCorrectRate; // 百分比
+        private Double assignmentCorrectRate;
         private TrendVO trend;
 
         @Data
         @Builder
         public static class TrendVO {
-            private Double durationChange;     // 学习时长变化百分比
-            private Double correctRateChange;  // 正确率变化百分比
+            private Double durationChange;
+            private Double correctRateChange;
         }
     }
 }
