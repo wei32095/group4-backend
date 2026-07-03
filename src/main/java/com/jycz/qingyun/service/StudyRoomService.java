@@ -12,4 +12,5 @@ public interface StudyRoomService {
     StudyRoomEndVO endStudyRoom(Long userId, EndStudyRoomRequest request);
     StudyRoomRecordListVO getRecords(Long userId, int page, int size);
     StudyRoomStatisticVO getStudyStatistic(Long userId);
+    StudyRoomVO getCurrentStudy(Long userId);
 }
