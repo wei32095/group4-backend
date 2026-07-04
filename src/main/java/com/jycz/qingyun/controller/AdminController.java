@@ -36,20 +36,23 @@ public class AdminController {
 
     /**
      * 管理员查看用户列表（分页）
-     * GET /qingyun/admin/users?pageNum=1&pageSize=10
+     * GET /qingyun/admin/users?pageNum=1&pageSize=10&keyword=&role=&status=
      */
     @GetMapping("/users")
     public ApiResult<AdminUserListVO> getUsers(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer role,
+            @RequestParam(required = false) Integer status,
             HttpServletRequest httpRequest) {
 
-        Integer role = (Integer) httpRequest.getAttribute("role");
-        if (role == null || role != 3) {
+        Integer myRole = (Integer) httpRequest.getAttribute("role");
+        if (myRole == null || myRole != 3) {
             return ApiResult.error(403, "仅管理员可查看");
         }
 
-        AdminUserListVO vo = userService.getAdminUserList(pageNum, pageSize);
+        AdminUserListVO vo = userService.getAdminUserList(pageNum, pageSize, keyword, role, status);
         return ApiResult.success(vo);
     }
 
