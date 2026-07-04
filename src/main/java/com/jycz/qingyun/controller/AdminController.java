@@ -4,6 +4,7 @@ import com.jycz.qingyun.model.dto.AdminNoticePublishRequest;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.FeedbackReplyRequest;
 import com.jycz.qingyun.model.vo.AdminDashboardVO;
+import com.jycz.qingyun.model.vo.AdminNoticeListVO;
 import com.jycz.qingyun.model.vo.AdminUserListVO;
 import com.jycz.qingyun.model.vo.FeedbackDetailVO;
 import com.jycz.qingyun.model.vo.FeedbackListVO;
@@ -88,6 +89,24 @@ public class AdminController {
         );
 
         return ApiResult.success("通知已推送给 " + count + " 人", null);
+    }
+
+    /**
+     * 管理员查看已发布通知列表（分页）
+     * GET /qingyun/admin/view_notices?pageNum=1&pageSize=10
+     */
+    @GetMapping("/view_notices")
+    public ApiResult<AdminNoticeListVO> getNotices(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            HttpServletRequest httpRequest) {
+
+        Integer role = (Integer) httpRequest.getAttribute("role");
+        if (role == null || role != 3) {
+            return ApiResult.error(403, "仅管理员可查看");
+        }
+
+        return noticeService.getPublishedNotices(pageNum, pageSize);
     }
 
     /**

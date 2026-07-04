@@ -11,6 +11,7 @@ import com.jycz.qingyun.model.vo.FeedbackDetailVO;
 import com.jycz.qingyun.model.vo.FeedbackListVO;
 import com.jycz.qingyun.model.vo.FeedbackVO;
 import com.jycz.qingyun.service.FeedbackService;
+import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.utils.BusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,9 @@ public class FeedbackServiceImpl implements FeedbackService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private NoticeService noticeService;
 
     @Override
     public void submit(Long userId, String content) {
@@ -119,5 +123,9 @@ public class FeedbackServiceImpl implements FeedbackService {
         fb.setReplyTime(LocalDateTime.now());
         fb.setStatus(1);
         feedbackMapper.updateById(fb);
+
+        // 发送通知给提交反馈的用户
+        noticeService.addNotice(fb.getUserId(), "反馈回复",
+                "您提交的反馈已收到回复：" + replyContent, 0);
     }
 }
