@@ -22,7 +22,7 @@ public class AssignmentCreateRequest {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Shanghai")  // ← 新增
     private LocalDateTime deadline;
 
-    @NotNull(message = "满分分值不能为空")
+
     private Integer maxScore;
 
     @NotNull(message = "题目列表不能为空")
