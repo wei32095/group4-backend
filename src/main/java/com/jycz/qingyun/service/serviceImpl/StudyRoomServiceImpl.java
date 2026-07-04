@@ -169,6 +169,26 @@ public class StudyRoomServiceImpl implements StudyRoomService {
     }
 
     @Override
+    public StudyRoomVO getCurrentStudy(Long userId) {
+        LambdaQueryWrapper<StudyRoom> wrapper = new LambdaQueryWrapper<StudyRoom>()
+                .eq(StudyRoom::getUserId, userId)
+                .isNull(StudyRoom::getEndTime)
+                .orderByDesc(StudyRoom::getCreatedAt)
+                .last("LIMIT 1");
+        StudyRoom studyRoom = studyRoomMapper.selectOne(wrapper);
+        if (studyRoom == null) return null;
+
+        StudyRoomVO vo = new StudyRoomVO();
+        vo.setId(studyRoom.getId());
+        vo.setGoal(studyRoom.getGoal());
+        vo.setMode(studyRoom.getMode());
+        vo.setFocusMode(studyRoom.getFocusMode());
+        vo.setStartTime(studyRoom.getStartTime());
+        vo.setPlanTime(studyRoom.getPlanTime());
+        return vo;
+    }
+
+    @Override
     public StudyRoomStatisticVO getStudyStatistic(Long userId) {
         LocalDate today = LocalDate.now();
         LocalDateTime weekStart = today.with(DayOfWeek.MONDAY).atStartOfDay();

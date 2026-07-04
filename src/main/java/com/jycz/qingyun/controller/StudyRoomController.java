@@ -49,6 +49,13 @@ public class StudyRoomController {
         }
     }
 
+    @GetMapping("/current")
+    public ApiResult<StudyRoomVO> getCurrentStudy(HttpServletRequest httpRequest) {
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        StudyRoomVO vo = studyRoomService.getCurrentStudy(userId);
+        return ApiResult.success(vo);
+    }
+
     @GetMapping("/statistic")
     public ApiResult<StudyRoomStatisticVO> getStatistic(HttpServletRequest httpRequest) {
         Long userId = (Long) httpRequest.getAttribute("userId");
