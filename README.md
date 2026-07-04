@@ -128,7 +128,6 @@ Mapper（MyBatis-Plus BaseMapper · LambdaQueryWrapper）
 
 ### ⏱️ 自习室
 - 正向计时 / 倒计时两种模式
-- 切屏检测（> 3 次标记无效）
 - 有效时长自动写入学情分析
 
 ### 🌸 花卉激励系统

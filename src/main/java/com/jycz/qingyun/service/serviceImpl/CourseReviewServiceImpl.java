@@ -57,28 +57,20 @@ public class CourseReviewServiceImpl implements CourseReviewService {
         );
 
         CourseReview review;
-        boolean isUpdate = false;
 
         if (existingReview != null) {
-            // 更新已有评价
-            existingReview.setStar(request.getStar());
-            existingReview.setReviewContent(request.getReviewContent());
-            courseReviewMapper.updateById(existingReview);
-            review = existingReview;
-            isUpdate = true;
-            log.info("更新课程评价: reviewId={}, userId={}", review.getId(), userId);
-        } else {
-            // 新建评价
-            review = new CourseReview();
-            review.setCourseId(request.getCourseId());
-            review.setUserId(userId);
-            review.setStar(request.getStar());
-            review.setReviewContent(request.getReviewContent());
-            review.setLikecount(0);
-            review.setReviewCreateTime(LocalDateTime.now());
-            courseReviewMapper.insert(review);
-            log.info("创建课程评价: reviewId={}, userId={}", review.getId(), userId);
+            throw new BusinessException(400, "您已评价过该课程，不可重复评价");
         }
+        // 新建评价
+        review = new CourseReview();
+        review.setCourseId(request.getCourseId());
+        review.setUserId(userId);
+        review.setStar(request.getStar());
+        review.setReviewContent(request.getReviewContent());
+        review.setLikecount(0);
+        review.setReviewCreateTime(LocalDateTime.now());
+        courseReviewMapper.insert(review);
+        log.info("创建课程评价: reviewId={}, userId={}", review.getId(), userId);
 
         // 4. 获取用户信息
         User user = userMapper.selectById(userId);
