@@ -6,6 +6,7 @@ import com.jycz.qingyun.model.dto.CourseJoinRequest;
 import com.jycz.qingyun.model.vo.*;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CourseService {
 
@@ -27,5 +28,5 @@ public interface CourseService {
 
     List<CoursePendingVO> getPendingCourseList();
 
-    List<CourseAdminListVO> getAdminCourseList(Integer pageNum, Integer pageSize, String keyword, Integer auditStatus, String status);
+    Map<String, Object> getAdminCourseList(String keyword, String filterStatus, Integer pageNum, Integer pageSize);
 }

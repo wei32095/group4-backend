@@ -57,13 +57,16 @@ public class CourseAdminController {
         return ApiResult.success(response);
     }
 
+    /**
+     * 管理员查询课程列表（模糊查询 + 筛选）
+     * GET /qingyun/course/admin/list?keyword=张&filterStatus=active&pageNum=1&pageSize=10
+     */
     @GetMapping("/admin/list")
     public ApiResult<Map<String, Object>> getAdminCourseList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String filterStatus,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer auditStatus,
-            @RequestParam(required = false) String status,
             HttpServletRequest httpRequest) {
 
         Integer role = (Integer) httpRequest.getAttribute("role");
@@ -72,29 +75,7 @@ public class CourseAdminController {
             return ApiResult.error(403, "仅管理员可查看");
         }
 
-        // 1. 获取分页数据
-        List<CourseAdminListVO> list = courseService.getAdminCourseList(pageNum, pageSize, keyword, auditStatus, status);
-
-        // 2. 计算总数（需要单独查询）
-        LambdaQueryWrapper<com.jycz.qingyun.model.entity.Course> countWrapper = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isEmpty()) {
-            countWrapper.like(com.jycz.qingyun.model.entity.Course::getCourseTitle, keyword);
-        }
-        if (auditStatus != null) {
-            countWrapper.eq(com.jycz.qingyun.model.entity.Course::getAuditStatus, auditStatus);
-        }
-        if (status != null && !status.isEmpty()) {
-            countWrapper.eq(com.jycz.qingyun.model.entity.Course::getStatus, status);
-        }
-        // 需要注入 courseMapper 或使用 courseService 的方法
-
-        // 3. 组装分页结果
-        Map<String, Object> result = new HashMap<>();
-        result.put("list", list);
-        result.put("pageNum", pageNum);
-        result.put("pageSize", pageSize);
-        // 前端自己处理分页
-
-        return ApiResult.success(result);
+        Map<String, Object> response = courseService.getAdminCourseList(keyword, filterStatus, pageNum, pageSize);
+        return ApiResult.success(response);
     }
 }

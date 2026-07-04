@@ -490,55 +490,103 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseAdminListVO> getAdminCourseList(Integer pageNum, Integer pageSize, String keyword, Integer auditStatus, String status) {
+    public Map<String, Object> getAdminCourseList(String keyword, String filterStatus, Integer pageNum, Integer pageSize) {
         int offset = (pageNum - 1) * pageSize;
 
         // 1. 构建查询条件
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.like(Course::getCourseTitle, keyword);
+
+        // 关键词搜索（课程名称 或 教师姓名）
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String trimmedKeyword = keyword.trim();
+
+            // 先查询匹配的教师ID
+            LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
+            userWrapper.like(User::getName, trimmedKeyword);
+            List<User> users = userMapper.selectList(userWrapper);
+            List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
+
+            // ✅ 关键修复：如果 userIds 为空，只按课程名称搜索
+            if (userIds.isEmpty()) {
+                wrapper.like(Course::getCourseTitle, trimmedKeyword);
+            } else {
+                // 如果 userIds 不为空，用 OR 条件
+                wrapper.and(w -> w
+                        .like(Course::getCourseTitle, trimmedKeyword)
+                        .or()
+                        .in(Course::getUserId, userIds)
+                );
+            }
         }
-        if (auditStatus != null) {
-            wrapper.eq(Course::getAuditStatus, auditStatus);
+
+        // 筛选状态
+        if (filterStatus != null && !filterStatus.isEmpty()) {
+            switch (filterStatus) {
+                case "active":
+                    wrapper.eq(Course::getStatus, "active")
+                            .eq(Course::getAuditStatus, 1);
+                    break;
+                case "pending":
+                    wrapper.eq(Course::getAuditStatus, 0);
+                    break;
+                case "ended":
+                    wrapper.eq(Course::getStatus, "archived")
+                            .eq(Course::getAuditStatus, 1);
+                    break;
+                case "all":
+                default:
+                    break;
+            }
         }
-        if (status != null && !status.isEmpty()) {
-            wrapper.eq(Course::getStatus, status);
-        }
+
         wrapper.orderByDesc(Course::getCreatedAt);
 
-        // 2. 查询分页数据
+        log.info("SQL: {}", wrapper.getCustomSqlSegment());
+
+        // 2. 查询总数
+        Long total = courseMapper.selectCount(wrapper);
+
+        // 3. 查询分页数据
         wrapper.last("LIMIT " + offset + "," + pageSize);
         List<Course> courses = courseMapper.selectList(wrapper);
 
-        if (courses.isEmpty()) {
-            return new ArrayList<>();
+        // 4. 组装结果
+        List<CourseAdminListVO> list = new ArrayList<>();
+        if (!courses.isEmpty()) {
+            List<Long> teacherIds = courses.stream()
+                    .map(Course::getUserId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            Map<Long, User> teacherMap = userMapper.selectBatchIds(teacherIds).stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+
+            list = courses.stream().map(course -> {
+                User teacher = teacherMap.get(course.getUserId());
+                return CourseAdminListVO.builder()
+                        .courseId(course.getId())
+                        .courseTitle(course.getCourseTitle())
+                        .cover(course.getCover())
+                        .teacherId(course.getUserId())
+                        .teacherName(teacher != null ? teacher.getName() : "未知老师")
+                        .studentCount(course.getStudentCount())
+                        .courseCode(course.getCourseCode())
+                        .status(course.getStatus())
+                        .auditStatus(course.getAuditStatus())
+                        .auditRemark(course.getAuditRemark())
+                        .auditTime(course.getAuditTime())
+                        .createdAt(course.getCreatedAt())
+                        .build();
+            }).collect(Collectors.toList());
         }
 
-        // 3. 批量查询教师信息
-        List<Long> teacherIds = courses.stream()
-                .map(Course::getUserId)
-                .distinct()
-                .collect(Collectors.toList());
-        Map<Long, User> teacherMap = userMapper.selectBatchIds(teacherIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        // 5. 返回分页 Map
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("pageNum", pageNum);
+        result.put("pageSize", pageSize);
+        result.put("pages", (int) Math.ceil((double) total / pageSize));
+        result.put("list", list);
 
-        // 4. 组装结果
-        return courses.stream().map(course -> {
-            User teacher = teacherMap.get(course.getUserId());
-            return CourseAdminListVO.builder()
-                    .courseId(course.getId())
-                    .courseTitle(course.getCourseTitle())
-                    .cover(course.getCover())
-                    .teacherId(course.getUserId())
-                    .teacherName(teacher != null ? teacher.getName() : "未知老师")
-                    .studentCount(course.getStudentCount())
-                    .courseCode(course.getCourseCode())
-                    .status(course.getStatus())
-                    .auditStatus(course.getAuditStatus())
-                    .auditRemark(course.getAuditRemark())
-                    .auditTime(course.getAuditTime())
-                    .createdAt(course.getCreatedAt())
-                    .build();
-        }).collect(Collectors.toList());
+        return result;
     }
 }
