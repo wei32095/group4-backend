@@ -14,9 +14,7 @@ public class SensitiveWord {
 
     private String word;
 
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt;   // ← 必须有
 
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;   // ← 必须有
 }
