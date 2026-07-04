@@ -31,6 +31,7 @@ public class ProblemDetailVO {
         private Integer userRole;
         private String content;
         private Boolean isTeacher;
+        private Boolean isAi;
         private LocalDateTime createdAt;
     }
 }

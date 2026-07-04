@@ -7,12 +7,14 @@ import com.jycz.qingyun.model.entity.*;
 import com.jycz.qingyun.model.vo.CourseProblemVO;
 import com.jycz.qingyun.model.vo.ProblemDetailVO;
 import com.jycz.qingyun.mapper.*;
+import com.jycz.qingyun.service.AIService;
 import com.jycz.qingyun.service.CourseProblemService;
 import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     private final UserMapper userMapper;
     private final NoticeService noticeService;
     private final PointsRecordService pointsRecordService;
+    private final AIService aiService;  // ← 新增
 
     // ========== 1. 发布问题 ==========
     @Override
@@ -80,6 +83,9 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             );
         }
 
+        // 7. 🆕 异步调用 AI 生成回复
+        generateAIRepliesAsync(problem.getId(), request.getTitle(), request.getContent());
+
         return CourseProblemVO.builder()
                 .problemId(problem.getId())
                 .courseId(problem.getCourseId())
@@ -94,6 +100,58 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                 .build();
     }
 
+    // ========== 🆕 异步 AI 回复 ==========
+    @Async
+    public void generateAIRepliesAsync(Long problemId, String title, String content) {
+        try {
+            // 1. 等待 2 秒（给学生发布问题的体验）
+            Thread.sleep(2000);
+
+            // 2. 查询已有回复（避免 AI 重复已有内容）
+            List<CourseProblemReply> existingReplies = courseProblemReplyMapper.selectByProblemId(problemId);
+            List<Map<String, String>> existingReplyList = new ArrayList<>();
+            for (CourseProblemReply reply : existingReplies) {
+                User user = userMapper.selectById(reply.getUserId());
+                Map<String, String> map = new HashMap<>();
+                map.put("userName", user != null ? user.getName() : "未知用户");
+                map.put("content", reply.getContent());
+                existingReplyList.add(map);
+            }
+
+            // 3. 调用 AI 生成回复
+            String aiContent = aiService.generateReply(title, content, existingReplyList);
+
+            // 4. 保存 AI 回复到数据库
+            CourseProblemReply aiReply = new CourseProblemReply();
+            aiReply.setProblemId(problemId);
+            aiReply.setUserId(aiService.getAiUserId());
+            aiReply.setContent(aiContent);
+            aiReply.setIsAi(1);
+            aiReply.setCreatedAt(LocalDateTime.now());
+            courseProblemReplyMapper.insert(aiReply);
+
+            // 5. 更新问题回复数
+            CourseProblem problem = courseProblemMapper.selectById(problemId);
+            problem.setReplyCount(problem.getReplyCount() + 1);
+            courseProblemMapper.updateById(problem);
+
+            // 6. 发送通知给问题发布者（AI 已回复）
+            User author = userMapper.selectById(problem.getUserId());
+            if (author != null) {
+                noticeService.addNotice(
+                        problem.getUserId(),
+                        "🤖 AI助教已回复",
+                        "你的问题「" + title + "」已被 AI 助教回复，快去查看吧！",
+                        12
+                );
+            }
+
+            log.info("AI 回复成功: problemId={}", problemId);
+
+        } catch (Exception e) {
+            log.error("AI 回复失败: problemId={}, error={}", problemId, e.getMessage());
+        }
+    }
 
     // ========== 2. 问题列表 ==========
     @Override
@@ -160,7 +218,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
         }).collect(Collectors.toList());
     }
 
-
     // ========== 3. 问题详情 ==========
     @Override
     public ProblemDetailVO getProblemDetail(Long problemId, Long userId) {
@@ -210,19 +267,27 @@ public class CourseProblemServiceImpl implements CourseProblemService {
         // 7. 获取课程教师ID（用于判断是否是教师回复）
         Long teacherId = course != null ? course.getUserId() : null;
 
-        // 8. 组装回复列表
+        // 8. 组装回复列表（增加 AI 标识）
         List<ProblemDetailVO.ReplyVO> replyVOs = new ArrayList<>();
         for (CourseProblemReply reply : replies) {
             User user = userMap.get(reply.getUserId());
             boolean isTeacherReply = user != null && user.getId().equals(teacherId);
+            boolean isAi = reply.getIsAi() != null && reply.getIsAi() == 1;
+
+            // AI 回复使用固定名称和头像
+            String userName = isAi ? "AI助教" : (user != null ? user.getName() : "未知用户");
+            String userAvatar = isAi ? "https://oss.example.com/ai_avatar.png" : (user != null ? user.getAvatar() : null);
+            Integer userRole = isAi ? 4 : (user != null ? user.getRole() : null);
+
             replyVOs.add(ProblemDetailVO.ReplyVO.builder()
                     .replyId(reply.getId())
                     .userId(reply.getUserId())
-                    .userName(user != null ? user.getName() : "未知用户")
-                    .userAvatar(user != null ? user.getAvatar() : null)
-                    .userRole(user != null ? user.getRole() : null)
+                    .userName(userName)
+                    .userAvatar(userAvatar)
+                    .userRole(userRole)
                     .content(reply.getContent())
                     .isTeacher(isTeacherReply)
+                    .isAi(isAi)
                     .createdAt(reply.getCreatedAt())
                     .build());
         }
@@ -241,7 +306,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                 .replies(replyVOs)
                 .build();
     }
-
 
     // ========== 4. 回复问题 ==========
     @Override
@@ -275,6 +339,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
         reply.setProblemId(request.getProblemId());
         reply.setUserId(userId);
         reply.setContent(request.getContent());
+        reply.setIsAi(0);  // 人工回复
         courseProblemReplyMapper.insert(reply);
 
         // 5. 更新问题回复数
