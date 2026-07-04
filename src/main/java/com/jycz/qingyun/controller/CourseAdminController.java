@@ -10,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 @Slf4j
 @RestController
 @RequestMapping("/qingyun/course")
@@ -56,7 +58,9 @@ public class CourseAdminController {
     }
 
     @GetMapping("/admin/list")
-    public ApiResult<List<CourseAdminListVO>> getAdminCourseList(
+    public ApiResult<Map<String, Object>> getAdminCourseList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer auditStatus,
             @RequestParam(required = false) String status,
@@ -68,7 +72,29 @@ public class CourseAdminController {
             return ApiResult.error(403, "仅管理员可查看");
         }
 
-        List<CourseAdminListVO> response = courseService.getAdminCourseList(keyword, auditStatus, status);
-        return ApiResult.success(response);
+        // 1. 获取分页数据
+        List<CourseAdminListVO> list = courseService.getAdminCourseList(pageNum, pageSize, keyword, auditStatus, status);
+
+        // 2. 计算总数（需要单独查询）
+        LambdaQueryWrapper<com.jycz.qingyun.model.entity.Course> countWrapper = new LambdaQueryWrapper<>();
+        if (keyword != null && !keyword.isEmpty()) {
+            countWrapper.like(com.jycz.qingyun.model.entity.Course::getCourseTitle, keyword);
+        }
+        if (auditStatus != null) {
+            countWrapper.eq(com.jycz.qingyun.model.entity.Course::getAuditStatus, auditStatus);
+        }
+        if (status != null && !status.isEmpty()) {
+            countWrapper.eq(com.jycz.qingyun.model.entity.Course::getStatus, status);
+        }
+        // 需要注入 courseMapper 或使用 courseService 的方法
+
+        // 3. 组装分页结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("pageNum", pageNum);
+        result.put("pageSize", pageSize);
+        // 前端自己处理分页
+
+        return ApiResult.success(result);
     }
 }
