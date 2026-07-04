@@ -27,5 +27,5 @@ public interface CourseService {
 
     List<CoursePendingVO> getPendingCourseList();
 
-    List<CourseAdminListVO> getAdminCourseList(String keyword, Integer auditStatus, String status);
+    List<CourseAdminListVO> getAdminCourseList(Integer pageNum, Integer pageSize, String keyword, Integer auditStatus, String status);
 }
