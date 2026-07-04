@@ -3,12 +3,15 @@ package com.jycz.qingyun.service.serviceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jycz.qingyun.mapper.NoticeMapper;
+import com.jycz.qingyun.mapper.NoticePublishMapper;
 import com.jycz.qingyun.mapper.CourseStudentMapper;
 import com.jycz.qingyun.mapper.UserMapper;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.entity.CourseStudent;
 import com.jycz.qingyun.model.entity.Notice;
+import com.jycz.qingyun.model.entity.NoticePublish;
 import com.jycz.qingyun.model.entity.User;
+import com.jycz.qingyun.model.vo.AdminNoticeListVO;
 import com.jycz.qingyun.model.vo.NoticeListVO;
 import com.jycz.qingyun.model.vo.NoticeVO;
 import com.jycz.qingyun.service.NoticeService;
@@ -31,6 +34,9 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private NoticePublishMapper noticePublishMapper;
 
     // ========== 原有方法 ==========
 
@@ -233,6 +239,56 @@ public class NoticeServiceImpl implements NoticeService {
             addNotice(user.getId(), noticeTitle, noticeContent, 0);
         }
 
+        // 写入发布记录
+        NoticePublish publish = new NoticePublish();
+        publish.setNoticeTitle(noticeTitle);
+        publish.setNoticeContent(noticeContent);
+        publish.setTargetRole(targetRole);
+        publish.setRecipientCount(users.size());
+        publish.setPushTime(LocalDateTime.now());
+        noticePublishMapper.insert(publish);
+
         return users.size();
+    }
+
+    @Override
+    public ApiResult<AdminNoticeListVO> getPublishedNotices(int pageNum, int pageSize) {
+        Page<NoticePublish> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<NoticePublish> wrapper = new LambdaQueryWrapper<NoticePublish>()
+                .orderByDesc(NoticePublish::getPushTime);
+
+        Page<NoticePublish> result = noticePublishMapper.selectPage(page, wrapper);
+
+        List<AdminNoticeListVO.AdminNoticeVO> voList = result.getRecords().stream()
+                .map(this::toAdminNoticeVO)
+                .collect(Collectors.toList());
+
+        AdminNoticeListVO listVO = new AdminNoticeListVO();
+        listVO.setRecords(voList);
+        listVO.setTotal(result.getTotal());
+        listVO.setPageNum((int) result.getCurrent());
+        listVO.setPageSize((int) result.getSize());
+        listVO.setPages((int) result.getPages());
+
+        return ApiResult.success(listVO);
+    }
+
+    private AdminNoticeListVO.AdminNoticeVO toAdminNoticeVO(NoticePublish publish) {
+        AdminNoticeListVO.AdminNoticeVO vo = new AdminNoticeListVO.AdminNoticeVO();
+        vo.setId(publish.getId());
+        vo.setNoticeTitle(publish.getNoticeTitle());
+        vo.setNoticeContent(publish.getNoticeContent());
+        vo.setTargetRole(publish.getTargetRole());
+        // 角色名称转换
+        if (publish.getTargetRole() == null) {
+            vo.setTargetRoleName("全部");
+        } else if (publish.getTargetRole() == 1) {
+            vo.setTargetRoleName("学生");
+        } else if (publish.getTargetRole() == 2) {
+            vo.setTargetRoleName("教师");
+        }
+        vo.setRecipientCount(publish.getRecipientCount());
+        vo.setPushTime(publish.getPushTime());
+        return vo;
     }
 }

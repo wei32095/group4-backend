@@ -386,7 +386,22 @@ CREATE TABLE `notice` (
 
 
 -- =============================================
--- 21. 学情分析表
+-- 21. 通知发布记录表（管理端查看已发布通知用）
+-- =============================================
+CREATE TABLE `notice_publish` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '发布记录ID',
+    `notice_title` VARCHAR(100) NOT NULL COMMENT '通知标题',
+    `notice_content` TEXT NOT NULL COMMENT '通知内容',
+    `target_role` TINYINT DEFAULT NULL COMMENT '推送目标角色：1-学生，2-教师，NULL-全部',
+    `recipient_count` INT NOT NULL DEFAULT '0' COMMENT '接收人数',
+    `push_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '推送时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_push_time` (`push_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知发布记录表';
+
+
+-- =============================================
+-- 22. 学情分析表
 -- =============================================
 CREATE TABLE `student_analysis` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '分析ID',
@@ -402,7 +417,7 @@ CREATE TABLE `student_analysis` (
 
 
 -- =============================================
--- 22. 敏感词表
+-- 23. 敏感词表
 -- =============================================
 CREATE TABLE `sensitive_word` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '敏感词ID',
@@ -416,7 +431,7 @@ CREATE TABLE `sensitive_word` (
 
 
 -- =============================================
--- 23. 课程问题表
+-- 24. 课程问题表
 -- =============================================
 CREATE TABLE `course_problem` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '问题ID',
@@ -434,7 +449,7 @@ CREATE TABLE `course_problem` (
 
 
 -- =============================================
--- 24. 课程问题回复表
+-- 25. 课程问题回复表
 -- =============================================
 CREATE TABLE `course_problem_reply` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '回复ID',
@@ -450,7 +465,7 @@ CREATE TABLE `course_problem_reply` (
 
 
 -- =============================================
--- 25. 用户反馈表
+-- 26. 用户反馈表
 -- =============================================
 CREATE TABLE `feedback` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '反馈ID',
@@ -603,6 +618,12 @@ INSERT IGNORE INTO `notice` (`id`, `user_id`, `notice_title`, `notice_content`, 
 (8,3,'作业批改通知','第一次作业已批改，得分92',1,4,'2026-06-28 11:00:00'),
 (9,2,'课程通知','暑期课程安排已更新',1,0,'2026-06-27 16:00:00'),
 (10,3,'上课提醒','本周五课程取消',0,1,'2026-06-27 10:00:00');
+
+-- 通知发布记录（管理端查看用）
+INSERT IGNORE INTO `notice_publish` (`id`, `notice_title`, `notice_content`, `target_role`, `recipient_count`, `push_time`) VALUES
+(1,'系统升级通知','7月1日2:00-5:00系统升级维护',NULL,10,'2026-06-29 10:00:00'),
+(2,'新作业发布','过去时态练习已发布，请按时完成',1,8,'2026-06-28 15:00:00'),
+(3,'课程通知','暑期课程安排已更新，请查看最新课表',NULL,10,'2026-06-27 16:00:00');
 
 -- 同步积分
 UPDATE `user` u
