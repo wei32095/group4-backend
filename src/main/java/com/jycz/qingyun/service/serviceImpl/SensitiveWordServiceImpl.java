@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,11 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
 
         SensitiveWord entity = new SensitiveWord();
         entity.setWord(word);
+
+        // ✅ 手动设置创建时间和更新时间
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+
         sensitiveWordMapper.insert(entity);
 
         log.info("敏感词添加成功: id={}, word={}", entity.getId(), word);
