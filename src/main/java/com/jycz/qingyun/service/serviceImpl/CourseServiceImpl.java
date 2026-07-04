@@ -490,7 +490,9 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseAdminListVO> getAdminCourseList(String keyword, Integer auditStatus, String status) {
+    public List<CourseAdminListVO> getAdminCourseList(Integer pageNum, Integer pageSize, String keyword, Integer auditStatus, String status) {
+        int offset = (pageNum - 1) * pageSize;
+
         // 1. 构建查询条件
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
@@ -504,7 +506,8 @@ public class CourseServiceImpl implements CourseService {
         }
         wrapper.orderByDesc(Course::getCreatedAt);
 
-        // 2. 查询所有课程
+        // 2. 查询分页数据
+        wrapper.last("LIMIT " + offset + "," + pageSize);
         List<Course> courses = courseMapper.selectList(wrapper);
 
         if (courses.isEmpty()) {
@@ -525,6 +528,7 @@ public class CourseServiceImpl implements CourseService {
             return CourseAdminListVO.builder()
                     .courseId(course.getId())
                     .courseTitle(course.getCourseTitle())
+                    .cover(course.getCover())
                     .teacherId(course.getUserId())
                     .teacherName(teacher != null ? teacher.getName() : "未知老师")
                     .studentCount(course.getStudentCount())
