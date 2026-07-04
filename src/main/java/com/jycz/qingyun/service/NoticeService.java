@@ -74,4 +74,9 @@ public interface NoticeService {
      * @return 接收人数
      */
     int publishAdminNotice(String noticeTitle, String noticeContent, Integer targetRole);
+
+    /**
+     * 管理员查看已发布通知列表（分页）
+     */
+    ApiResult<com.jycz.qingyun.model.vo.AdminNoticeListVO> getPublishedNotices(int pageNum, int pageSize);
 }
