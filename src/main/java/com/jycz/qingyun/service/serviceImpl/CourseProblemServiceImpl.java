@@ -15,11 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.HashMap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,8 +30,9 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     private final CourseMapper courseMapper;
     private final CourseStudentMapper courseStudentMapper;
     private final UserMapper userMapper;
-    private final NoticeService noticeService;  // ← 新增
-    private final PointsRecordService pointsRecordService;  // ← 新增
+    private final NoticeService noticeService;
+    private final PointsRecordService pointsRecordService;
+
     // ========== 1. 发布问题 ==========
     @Override
     @Transactional
@@ -101,18 +100,24 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     public List<CourseProblemVO> getProblemList(Long courseId, Long userId, Integer pageNum, Integer pageSize) {
         int offset = (pageNum - 1) * pageSize;
 
+        // 1. 校验课程是否存在
         Course course = courseMapper.selectById(courseId);
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
         }
 
-        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
-        csWrapper.eq(CourseStudent::getCourseId, courseId)
-                .eq(CourseStudent::getUserId, userId);
-        if (courseStudentMapper.selectCount(csWrapper) == 0) {
-            throw new BusinessException(403, "您未加入该课程，无法查看问题列表");
+        // 2. ✅ 校验权限：教师必须是该课程创建者，学生必须已加入
+        boolean isTeacher = course.getUserId().equals(userId);
+        if (!isTeacher) {
+            LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+            csWrapper.eq(CourseStudent::getCourseId, courseId)
+                    .eq(CourseStudent::getUserId, userId);
+            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+                throw new BusinessException(403, "您未加入该课程，无法查看问题列表");
+            }
         }
 
+        // 3. 查询问题列表
         LambdaQueryWrapper<CourseProblem> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CourseProblem::getCourseId, courseId)
                 .orderByDesc(CourseProblem::getCreatedAt)
@@ -123,13 +128,13 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             return new ArrayList<>();
         }
 
-        // ✅ 批量查询用户信息（加上空集合判断）
+        // 4. 批量查询用户信息
         List<Long> userIds = problems.stream()
                 .map(CourseProblem::getUserId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        Map<Long, User> userMap;
+        final Map<Long, User> userMap;
         if (!userIds.isEmpty()) {
             userMap = userMapper.selectBatchIds(userIds).stream()
                     .collect(Collectors.toMap(User::getId, u -> u));
@@ -137,6 +142,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             userMap = new HashMap<>();
         }
 
+        // 5. 组装结果
         return problems.stream().map(problem -> {
             User user = userMap.get(problem.getUserId());
             return CourseProblemVO.builder()
@@ -158,41 +164,57 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     // ========== 3. 问题详情 ==========
     @Override
     public ProblemDetailVO getProblemDetail(Long problemId, Long userId) {
+        // 1. 查询问题
         CourseProblem problem = courseProblemMapper.selectById(problemId);
         if (problem == null) {
             throw new BusinessException(404, "问题不存在");
         }
 
-        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
-        csWrapper.eq(CourseStudent::getCourseId, problem.getCourseId())
-                .eq(CourseStudent::getUserId, userId);
-        if (courseStudentMapper.selectCount(csWrapper) == 0) {
-            throw new BusinessException(403, "您未加入该课程，无法查看问题详情");
+        // 2. 校验课程
+        Course course = courseMapper.selectById(problem.getCourseId());
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
         }
 
+        // 3. ✅ 校验权限：教师必须是该课程创建者，学生必须已加入
+        boolean isTeacher = course.getUserId().equals(userId);
+        if (!isTeacher) {
+            LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+            csWrapper.eq(CourseStudent::getCourseId, problem.getCourseId())
+                    .eq(CourseStudent::getUserId, userId);
+            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+                throw new BusinessException(403, "您未加入该课程，无法查看问题详情");
+            }
+        }
+
+        // 4. 获取提问者信息
         User asker = userMapper.selectById(problem.getUserId());
 
+        // 5. 查询所有回复
         List<CourseProblemReply> replies = courseProblemReplyMapper.selectByProblemId(problemId);
 
-        // ✅ 批量查询回复者信息（加上空集合判断）
+        // 6. 批量查询回复者信息
         List<Long> replyUserIds = replies.stream()
                 .map(CourseProblemReply::getUserId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        Map<Long, User> userMap = new HashMap<>();
+        final Map<Long, User> userMap;
         if (!replyUserIds.isEmpty()) {
             userMap = userMapper.selectBatchIds(replyUserIds).stream()
                     .collect(Collectors.toMap(User::getId, u -> u));
+        } else {
+            userMap = new HashMap<>();
         }
 
-        Course course = courseMapper.selectById(problem.getCourseId());
+        // 7. 获取课程教师ID（用于判断是否是教师回复）
         Long teacherId = course != null ? course.getUserId() : null;
 
+        // 8. 组装回复列表
         List<ProblemDetailVO.ReplyVO> replyVOs = new ArrayList<>();
         for (CourseProblemReply reply : replies) {
             User user = userMap.get(reply.getUserId());
-            boolean isTeacher = user != null && user.getId().equals(teacherId);
+            boolean isTeacherReply = user != null && user.getId().equals(teacherId);
             replyVOs.add(ProblemDetailVO.ReplyVO.builder()
                     .replyId(reply.getId())
                     .userId(reply.getUserId())
@@ -200,11 +222,12 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                     .userAvatar(user != null ? user.getAvatar() : null)
                     .userRole(user != null ? user.getRole() : null)
                     .content(reply.getContent())
-                    .isTeacher(isTeacher)
+                    .isTeacher(isTeacherReply)
                     .createdAt(reply.getCreatedAt())
                     .build());
         }
 
+        // 9. 返回结果
         return ProblemDetailVO.builder()
                 .problemId(problem.getId())
                 .courseId(problem.getCourseId())
@@ -230,15 +253,21 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             throw new BusinessException(404, "问题不存在");
         }
 
-        // 2. 查询课程信息
+        // 2. 校验课程
         Course course = courseMapper.selectById(problem.getCourseId());
+        if (course == null) {
+            throw new BusinessException(404, "课程不存在");
+        }
 
         // 3. 校验用户是否已加入该课程
-        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
-        csWrapper.eq(CourseStudent::getCourseId, problem.getCourseId())
-                .eq(CourseStudent::getUserId, userId);
-        if (courseStudentMapper.selectCount(csWrapper) == 0) {
-            throw new BusinessException(403, "您未加入该课程，无法回复");
+        boolean isTeacher = course.getUserId().equals(userId);
+        if (!isTeacher) {
+            LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+            csWrapper.eq(CourseStudent::getCourseId, problem.getCourseId())
+                    .eq(CourseStudent::getUserId, userId);
+            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+                throw new BusinessException(403, "您未加入该课程，无法回复");
+            }
         }
 
         // 4. 创建回复
@@ -267,12 +296,11 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             );
         }
 
-        // 8. ========== 新增：教师回复问题加分 ==========
+        // 8. 教师回复问题加分
         if (course != null && course.getUserId().equals(userId)) {
             pointsRecordService.handleProblemRepliedPoints(problem.getUserId());
             log.info("教师回复问题，给问题发布者加分: problemId={}, authorId={}", problem.getId(), problem.getUserId());
         }
-        // ========== 新增结束 ==========
 
         // 9. 获取问题发布者信息
         User author = userMapper.selectById(problem.getUserId());
