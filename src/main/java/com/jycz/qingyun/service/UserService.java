@@ -52,7 +52,7 @@ public interface UserService {
     /**
      * 管理员查看用户列表（分页）
      */
-    AdminUserListVO getAdminUserList(Integer pageNum, Integer pageSize);
+    AdminUserListVO getAdminUserList(Integer pageNum, Integer pageSize, String keyword, Integer role, Integer status);
 
     /**
      * 管理员看板数据
