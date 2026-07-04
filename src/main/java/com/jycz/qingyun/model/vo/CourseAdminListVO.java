@@ -11,7 +11,7 @@ public class CourseAdminListVO {
 
     private Long courseId;
     private String courseTitle;
-    private String cover;              // ← 新增
+    private String cover;
     private Long teacherId;
     private String teacherName;
     private Integer studentCount;
