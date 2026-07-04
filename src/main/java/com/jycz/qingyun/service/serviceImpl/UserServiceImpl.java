@@ -448,11 +448,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public AdminUserListVO getAdminUserList(Integer pageNum, Integer pageSize) {
-        // 1. 分页查询用户
+    public AdminUserListVO getAdminUserList(Integer pageNum, Integer pageSize, String keyword, Integer role, Integer status) {
+        // 1. 分页查询用户（排除管理员自己）
         Page<User> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
-                .orderByDesc(User::getCreatedAt);
+                .ne(User::getRole, 3);  // 不包含管理员
+
+        // 关键词模糊匹配（name 或 phone）
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.apply("(name LIKE CONCAT('%', {0}, '%') OR phone LIKE CONCAT('%', {0}, '%'))", keyword);
+        }
+
+        // 角色/状态筛选
+        if (role != null) {
+            wrapper.eq(User::getRole, role);
+        }
+        if (status != null) {
+            wrapper.eq(User::getStatus, status);
+        }
+
+        wrapper.orderByDesc(User::getCreatedAt);
         IPage<User> userPage = userMapper.selectPage(page, wrapper);
 
         // 2. 转换 VO
