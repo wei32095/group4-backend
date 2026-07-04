@@ -2,6 +2,7 @@ package com.jycz.qingyun.controller;
 
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.vo.AdminUserCourseVO;
+import com.jycz.qingyun.model.vo.CourseAdminListVO;
 import com.jycz.qingyun.model.vo.CoursePendingVO;
 import com.jycz.qingyun.service.CourseService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,6 +52,23 @@ public class CourseAdminController {
         }
 
         List<CoursePendingVO> response = courseService.getPendingCourseList();
+        return ApiResult.success(response);
+    }
+
+    @GetMapping("/admin/list")
+    public ApiResult<List<CourseAdminListVO>> getAdminCourseList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer auditStatus,
+            @RequestParam(required = false) String status,
+            HttpServletRequest httpRequest) {
+
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 3) {
+            return ApiResult.error(403, "仅管理员可查看");
+        }
+
+        List<CourseAdminListVO> response = courseService.getAdminCourseList(keyword, auditStatus, status);
         return ApiResult.success(response);
     }
 }

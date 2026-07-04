@@ -488,4 +488,53 @@ public class CourseServiceImpl implements CourseService {
                     .build();
         }).collect(Collectors.toList());
     }
+
+    @Override
+    public List<CourseAdminListVO> getAdminCourseList(String keyword, Integer auditStatus, String status) {
+        // 1. 构建查询条件
+        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
+        if (keyword != null && !keyword.isEmpty()) {
+            wrapper.like(Course::getCourseTitle, keyword);
+        }
+        if (auditStatus != null) {
+            wrapper.eq(Course::getAuditStatus, auditStatus);
+        }
+        if (status != null && !status.isEmpty()) {
+            wrapper.eq(Course::getStatus, status);
+        }
+        wrapper.orderByDesc(Course::getCreatedAt);
+
+        // 2. 查询所有课程
+        List<Course> courses = courseMapper.selectList(wrapper);
+
+        if (courses.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 3. 批量查询教师信息
+        List<Long> teacherIds = courses.stream()
+                .map(Course::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, User> teacherMap = userMapper.selectBatchIds(teacherIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        // 4. 组装结果
+        return courses.stream().map(course -> {
+            User teacher = teacherMap.get(course.getUserId());
+            return CourseAdminListVO.builder()
+                    .courseId(course.getId())
+                    .courseTitle(course.getCourseTitle())
+                    .teacherId(course.getUserId())
+                    .teacherName(teacher != null ? teacher.getName() : "未知老师")
+                    .studentCount(course.getStudentCount())
+                    .courseCode(course.getCourseCode())
+                    .status(course.getStatus())
+                    .auditStatus(course.getAuditStatus())
+                    .auditRemark(course.getAuditRemark())
+                    .auditTime(course.getAuditTime())
+                    .createdAt(course.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
+    }
 }
