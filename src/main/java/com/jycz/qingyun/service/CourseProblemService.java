@@ -16,4 +16,8 @@ public interface CourseProblemService {
     ProblemDetailVO getProblemDetail(Long problemId, Long userId);
 
     CourseProblemVO replyProblem(ProblemReplyRequest request, Long userId);
+
+    void deleteProblem(Long problemId, Long userId);
+
+    void deleteReply(Long replyId, Long userId);
 }

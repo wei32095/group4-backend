@@ -88,4 +88,34 @@ public class CourseProblemController {
         CourseProblemVO response = courseProblemService.replyProblem(request, userId);
         return ApiResult.success("回复成功", response);
     }
+
+    /**
+     * 删除自己的问题
+     * DELETE /qingyun/course/problem/{problemId}
+     */
+    @DeleteMapping("/{problemId}")
+    public ApiResult<Void> deleteProblem(
+            @PathVariable Long problemId,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+
+        courseProblemService.deleteProblem(problemId, userId);
+        return ApiResult.success();
+    }
+
+    /**
+     * 删除自己的回复
+     * DELETE /qingyun/course/problem/reply/{replyId}
+     */
+    @DeleteMapping("/reply/{replyId}")
+    public ApiResult<Void> deleteReply(
+            @PathVariable Long replyId,
+            HttpServletRequest httpRequest) {
+
+        Long userId = (Long) httpRequest.getAttribute("userId");
+
+        courseProblemService.deleteReply(replyId, userId);
+        return ApiResult.success();
+    }
 }
