@@ -18,6 +18,9 @@ public class AssignmentSubmitVO {
     private Integer maxScore;
     private Boolean subjectivePending;
 
+    // ✅ 新增：AI 分析状态
+    private String analysisStatus;  // "analyzing" / "completed" / "failed"
+
     // ========== 新增 ==========
     private List<WeakPointVO> weakPoints;  // 薄弱知识点列表
 

@@ -21,7 +21,7 @@ public class AssignmentDetailVO {
     private Integer totalScore;
     private List<QuestionDetailVO> questions;
 
-    // ========== 新增 ==========
+    // ✅ 新增：薄弱知识点列表
     private List<WeakPointVO> weakPoints;
 
     @Data
@@ -48,6 +48,6 @@ public class AssignmentDetailVO {
         private String explanation;
         private String teacherComment;
         private String imageUrl;
-        private String knowledgePoint;  // ← 新增：题目对应的知识点
+        private String knowledgePoint;
     }
 }
