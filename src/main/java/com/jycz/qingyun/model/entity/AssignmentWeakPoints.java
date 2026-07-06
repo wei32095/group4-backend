@@ -17,7 +17,4 @@ public class AssignmentWeakPoints {
     private Long userId;
 
     private String weakPoints;  // JSON
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
 }
