@@ -34,7 +34,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     private final UserMapper userMapper;
     private final NoticeService noticeService;
     private final PointsRecordService pointsRecordService;
-    private final AIService aiService;  // ← 新增
+    private final AIService aiService;
 
     // ========== 1. 发布问题 ==========
     @Override
@@ -267,7 +267,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
         // 7. 获取课程教师ID（用于判断是否是教师回复）
         Long teacherId = course != null ? course.getUserId() : null;
 
-        // 8. 组装回复列表（增加 AI 标识）
+// 8. 组装回复列表（增加 AI 标识）
         List<ProblemDetailVO.ReplyVO> replyVOs = new ArrayList<>();
         for (CourseProblemReply reply : replies) {
             User user = userMap.get(reply.getUserId());
