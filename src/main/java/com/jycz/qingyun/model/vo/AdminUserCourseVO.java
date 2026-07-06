@@ -11,6 +11,7 @@ public class AdminUserCourseVO {
 
     private long courseId;
     private String courseTitle;
+    private String cover;
     private String teacherName;
     private Integer studentCount;
     private String courseCode;
