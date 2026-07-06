@@ -18,6 +18,8 @@ public class CourseProblemReply {
 
     private String content;
 
+    private Integer isAi;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
