@@ -1,6 +1,7 @@
 package com.jycz.qingyun.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jycz.qingyun.model.entity.Question;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,15 +90,15 @@ public class AIService {
     }
 
     private String buildRecommendationPrompt(
-            List<com.jycz.qingyun.model.entity.Question> wrongQuestions,
-            List<com.jycz.qingyun.model.entity.Question> allQuestions,
+            List<Question> wrongQuestions,
+            List<Question> allQuestions,
             int count) {
 
         StringBuilder sb = new StringBuilder();
         sb.append("你是一位资深学科教师。请根据学生的错题情况，生成针对性的练习题。\n\n");
 
         sb.append("【学生做错的题目】\n");
-        for (com.jycz.qingyun.model.entity.Question q : wrongQuestions) {
+        for (Question q : wrongQuestions) {
             sb.append("- ").append(q.getStem()).append("\n");
             sb.append("  正确答案：").append(q.getAnswer()).append("\n");
             sb.append("  解析：").append(q.getExplanation() != null ? q.getExplanation() : "无").append("\n");
@@ -105,7 +106,7 @@ public class AIService {
 
         if (allQuestions != null && allQuestions.size() > wrongQuestions.size()) {
             sb.append("\n【学生做对的题目（参考）】\n");
-            for (com.jycz.qingyun.model.entity.Question q : allQuestions) {
+            for (Question q : allQuestions) {
                 if (!wrongQuestions.contains(q)) {
                     sb.append("- ").append(q.getStem()).append("\n");
                     break;
@@ -116,17 +117,19 @@ public class AIService {
         sb.append("\n【要求】\n");
         sb.append("1. 针对错题涉及的知识点出题\n");
         sb.append("2. 生成 ").append(count).append(" 道练习题\n");
-        sb.append("3. 题型可以是：单选、填空、简答\n");
+        sb.append("3. 题型可以是：单选、填空\n");
         sb.append("4. 每题都要有正确答案和解析\n");
         sb.append("5. 每道题都要标明对应的知识点名称\n");
-        sb.append("6. 返回 JSON 数组格式：\n");
+        sb.append("6. ✅ 每道题必须包含 sortOrder 字段，从 1 开始递增（如第1题为1，第2题为2）\n");
+        sb.append("7. 返回 JSON 数组格式：\n");
         sb.append("   [{\n");
         sb.append("     \"stem\": \"题干\",\n");
         sb.append("     \"type\": 1,\n");
         sb.append("     \"options\": [\"A.xxx\", \"B.xxx\"],\n");
         sb.append("     \"answer\": \"答案\",\n");
         sb.append("     \"explanation\": \"解析\",\n");
-        sb.append("     \"knowledgePoint\": \"知识点名称\"\n");
+        sb.append("     \"knowledgePoint\": \"知识点名称\",\n");
+        sb.append("     \"sortOrder\": 1\n");
         sb.append("   }]\n");
         sb.append("请只返回 JSON 数组。");
 
@@ -329,5 +332,61 @@ public class AIService {
     private String cleanAIResponse(String response) {
         if (response == null) return null;
         return response.replaceAll("\\*\\*", "").replaceAll("\\*", "");
+    }
+
+    /**
+     * 基于错题生成推荐习题（用于推荐练习后仍有错误的情况）
+     */
+    public List<Map<String, Object>> generateRecommendationFromWrongQuestions(
+            List<Map<String, Object>> wrongQuestions,
+            int count) {
+
+        if (wrongQuestions == null || wrongQuestions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        try {
+            String prompt = buildWrongQuestionPrompt(wrongQuestions, count);
+            String response = callAI(prompt);
+            return parseJsonResponse(response);
+        } catch (Exception e) {
+            log.error("AI 基于错题生成推荐失败: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private String buildWrongQuestionPrompt(List<Map<String, Object>> wrongQuestions, int count) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("你是一位资深学科教师。请根据学生做错的题目，生成针对性的练习题。\n\n");
+
+        sb.append("【学生做错的题目】\n");
+        for (Map<String, Object> q : wrongQuestions) {
+            sb.append("- 题干：").append(q.get("stem")).append("\n");
+            sb.append("  正确答案：").append(q.get("answer")).append("\n");
+            if (q.get("explanation") != null) {
+                sb.append("  解析：").append(q.get("explanation")).append("\n");
+            }
+        }
+
+        sb.append("\n【要求】\n");
+        sb.append("1. 针对错题涉及的知识点出题\n");
+        sb.append("2. 生成 ").append(count).append(" 道练习题\n");
+        sb.append("3. 题型可以是：单选、填空\n");
+        sb.append("4. 每题都要有正确答案和解析\n");
+        sb.append("5. 每道题都要标明对应的知识点名称\n");
+        sb.append("6. ✅ 每道题必须包含 sortOrder 字段，从 1 开始递增\n");
+        sb.append("7. 返回 JSON 数组格式：\n");
+        sb.append("   [{\n");
+        sb.append("     \"stem\": \"题干\",\n");
+        sb.append("     \"type\": 1,\n");
+        sb.append("     \"options\": [\"A.xxx\", \"B.xxx\"],\n");
+        sb.append("     \"answer\": \"答案\",\n");
+        sb.append("     \"explanation\": \"解析\",\n");
+        sb.append("     \"knowledgePoint\": \"知识点名称\",\n");
+        sb.append("     \"sortOrder\": 1\n");
+        sb.append("   }]\n");
+        sb.append("请只返回 JSON 数组。");
+
+        return sb.toString();
     }
 }

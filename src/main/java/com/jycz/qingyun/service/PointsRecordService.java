@@ -42,4 +42,9 @@ public interface PointsRecordService {
      * 问题被老师回复加分
      */
     void handleProblemRepliedPoints(Long userId);
+    /**
+     * 推荐习题全部正确加分
+     */
+    void handleRecommendationPoints(Long userId);
+
 }

@@ -28,7 +28,7 @@ public class AsyncAnalysisService {
     private final AIService aiService;
     private final ObjectMapper objectMapper;
     private final AssignmentMapper assignmentMapper;
-    private final AssignmentWeakPointsMapper assignmentWeakPointsMapper;  // ← 新增
+    private final AssignmentWeakPointsMapper assignmentWeakPointsMapper;
     private final ObjectSubmitMapper objectSubmitMapper;
     private final QuestionMapper questionMapper;
     private final RecommendationMapper recommendationMapper;
@@ -82,7 +82,10 @@ public class AsyncAnalysisService {
             }
 
             // 4. ✅ 保存到 assignment_weak_points 表（按学生）
-            String weakPointsJson = objectMapper.writeValueAsString(weakPointMaps);
+            String weakPointsJson = safeWriteValueAsString(weakPointMaps);
+            if (weakPointsJson == null) {
+                return;
+            }
 
             LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(AssignmentWeakPoints::getAssignmentId, assignment.getId())
@@ -178,10 +181,16 @@ public class AsyncAnalysisService {
                 return;
             }
 
+            // ✅ 保存推荐记录
+            String questionsJson = safeWriteValueAsString(recommendations);
+            if (questionsJson == null) {
+                return;
+            }
+
             Recommendation rec = new Recommendation();
             rec.setUserId(studentId);
             rec.setAssignmentId(assignment.getId());
-            rec.setQuestions(objectMapper.writeValueAsString(recommendations));
+            rec.setQuestions(questionsJson);
             rec.setStatus(0);
             recommendationMapper.insert(rec);
 
@@ -220,5 +229,17 @@ public class AsyncAnalysisService {
             fallback.add(item);
         }
         return fallback;
+    }
+
+    /**
+     * 安全序列化 JSON
+     */
+    private String safeWriteValueAsString(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.error("JSON 序列化失败: {}", e.getMessage());
+            return null;
+        }
     }
 }
