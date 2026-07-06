@@ -66,6 +66,8 @@ public class CourseProblemServiceImpl implements CourseProblemService {
         problem.setTitle(request.getTitle());
         problem.setContent(request.getContent());
         problem.setReplyCount(0);
+        problem.setCreatedAt(LocalDateTime.now());
+        problem.setUpdatedAt(LocalDateTime.now());
         courseProblemMapper.insert(problem);
 
         log.info("问题发布成功: problemId={}, userId={}, courseId={}",
