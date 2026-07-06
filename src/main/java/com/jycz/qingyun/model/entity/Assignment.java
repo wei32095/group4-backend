@@ -25,5 +25,4 @@ public class Assignment {
 
     private LocalDateTime updatedAt;
 
-    private String weakPoints;
 }

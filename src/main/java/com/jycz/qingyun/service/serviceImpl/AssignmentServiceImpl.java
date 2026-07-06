@@ -45,7 +45,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final RecommendationMapper recommendationMapper;
     private final AIService aiService;
     private final AsyncAnalysisService asyncAnalysisService;
-
+    private final AssignmentWeakPointsMapper assignmentWeakPointsMapper;
     @Override
     @Transactional
     public AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId) {
@@ -200,19 +200,23 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public AssignmentDetailVO getAssignmentDetail(Long assignmentId, Long userId) {
+        // 1. 查询作业
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             throw new BusinessException(404, "作业不存在");
         }
 
+        // 2. 查询题目列表
         LambdaQueryWrapper<Question> qWrapper = new LambdaQueryWrapper<>();
         qWrapper.eq(Question::getAssignmentId, assignmentId)
                 .orderByAsc(Question::getSortOrder);
         List<Question> questions = questionMapper.selectList(qWrapper);
 
+        // 3. 查询提交记录
         List<ObjectSubmit> objectSubmits = objectSubmitMapper.selectByAssignmentAndUser(assignmentId, userId);
         List<SubjectSubmit> subjectSubmits = subjectSubmitMapper.selectByAssignmentAndUser(assignmentId, userId);
 
+        // 4. 处理重复 key
         Map<Long, ObjectSubmit> objectSubmitMap = objectSubmits.stream()
                 .collect(Collectors.toMap(
                         ObjectSubmit::getQuestionId,
@@ -227,6 +231,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                         (existing, replacement) -> replacement
                 ));
 
+        // 5. 组装题目详情
         List<AssignmentDetailVO.QuestionDetailVO> questionDetails = new ArrayList<>();
         int totalAutoScore = 0;
         int totalSubjectiveScore = 0;
@@ -282,6 +287,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             questionDetails.add(builder.build());
         }
 
+        // 6. 计算作业状态
         boolean hasSubmitted = !objectSubmits.isEmpty() || !subjectSubmits.isEmpty();
         String status;
         if (!hasSubmitted && LocalDateTime.now().isAfter(assignment.getDeadline())) {
@@ -299,11 +305,17 @@ public class AssignmentServiceImpl implements AssignmentService {
             totalScore = totalAutoScore + totalSubjectiveScore;
         }
 
+        // 7. ✅ 读取当前学生的薄弱知识点（从 assignment_weak_points 表）
         List<AssignmentDetailVO.WeakPointVO> weakPoints = new ArrayList<>();
-        if (assignment.getWeakPoints() != null && !assignment.getWeakPoints().isEmpty()) {
+        LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AssignmentWeakPoints::getAssignmentId, assignmentId)
+                .eq(AssignmentWeakPoints::getUserId, userId);
+        AssignmentWeakPoints awp = assignmentWeakPointsMapper.selectOne(wrapper);
+
+        if (awp != null && awp.getWeakPoints() != null && !awp.getWeakPoints().isEmpty()) {
             try {
                 List<Map<String, Object>> weakPointMaps = objectMapper.readValue(
-                        assignment.getWeakPoints(),
+                        awp.getWeakPoints(),
                         new TypeReference<List<Map<String, Object>>>() {}
                 );
                 for (Map<String, Object> map : weakPointMaps) {
@@ -319,6 +331,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             }
         }
 
+        // 8. 返回结果
         return AssignmentDetailVO.builder()
                 .assignmentId(assignment.getId())
                 .courseId(assignment.getCourseId())
@@ -414,6 +427,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         log.info("作业提交成功: assignmentId={}, studentId={}, autoScore={}",
                 request.getAssignmentId(), studentId, totalAutoScore);
 
+        // 发送提交作业通知给教师
         Course course = courseMapper.selectById(assignment.getCourseId());
         if (course != null) {
             User student = userMapper.selectById(studentId);
@@ -421,12 +435,13 @@ public class AssignmentServiceImpl implements AssignmentService {
             noticeService.sendSubmitNotice(course.getUserId(), studentName, assignment.getAssignmentTitle());
         }
 
-        // ✅ 异步生成薄弱知识点分析（不阻塞响应）
+        // ✅ 异步生成薄弱知识点分析
         asyncAnalysisService.generateWeakPointsAsync(assignment, studentId);
 
         // ✅ 异步生成智能推荐
         asyncAnalysisService.generateRecommendationAsync(assignment, studentId);
 
+        // ✅ 立即返回（没有 weakPoints）
         return AssignmentSubmitVO.builder()
                 .assignmentId(request.getAssignmentId())
                 .status("SUBMITTED")
@@ -434,8 +449,6 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .autoScore(totalAutoScore)
                 .maxScore(assignment.getMaxScore())
                 .subjectivePending(true)
-                .analysisStatus("analyzing")
-                .weakPoints(null)
                 .build();
     }
 

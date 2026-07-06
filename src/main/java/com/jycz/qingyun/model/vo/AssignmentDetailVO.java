@@ -21,7 +21,7 @@ public class AssignmentDetailVO {
     private Integer totalScore;
     private List<QuestionDetailVO> questions;
 
-    // ✅ 新增：薄弱知识点列表
+    // ========== 只有 weakPoints，没有 analysisStatus ==========
     private List<WeakPointVO> weakPoints;
 
     @Data
