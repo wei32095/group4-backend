@@ -39,7 +39,7 @@ public class AIService {
             return cleanAIResponse(response.trim());
         } catch (Exception e) {
             log.error("AI 回复失败: {}", e.getMessage());
-            return "抱歉，AI 暂时无法回答，请稍后再试或等待老师回复。";
+            return "抱歉，AI暂时无法回答，请稍后再试或等待老师回复。";
         }
     }
 
