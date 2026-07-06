@@ -36,7 +36,7 @@ public class AIService {
         try {
             String prompt = buildReplyPrompt(title, content, existingReplies);
             String response = callAI(prompt);
-            return response.trim();
+            return cleanAIResponse(response.trim());
         } catch (Exception e) {
             log.error("AI 回复失败: {}", e.getMessage());
             return "抱歉，AI 暂时无法回答，请稍后再试或等待老师回复。";
@@ -325,5 +325,9 @@ public class AIService {
 
     public Long getAiUserId() {
         return AI_USER_ID;
+    }
+    private String cleanAIResponse(String response) {
+        if (response == null) return null;
+        return response.replaceAll("\\*\\*", "").replaceAll("\\*", "");
     }
 }
