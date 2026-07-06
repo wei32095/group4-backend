@@ -583,16 +583,17 @@ public class UserServiceImpl implements UserService {
             activities.add(vo);
         }
 
-        // 2. 查询最近的课程创建
+        // 2. 查询最近待审核的课程创建
         List<Course> courses = courseMapper.selectList(
                 new LambdaQueryWrapper<Course>()
+                        .eq(Course::getAuditStatus, 0)
                         .orderByDesc(Course::getCreatedAt)
                         .last("LIMIT " + limit));
         for (Course course : courses) {
             User user = userMapper.selectById(course.getUserId());
             String userName = user != null ? user.getName() : "未知用户";
             ActivityVO vo = new ActivityVO();
-            vo.setContent(userName + "创建了课程《" + course.getCourseTitle() + "》");
+            vo.setContent("教师" + userName + "申请创建了一门课程，待审核");
             vo.setTime(course.getCreatedAt());
             activities.add(vo);
         }
