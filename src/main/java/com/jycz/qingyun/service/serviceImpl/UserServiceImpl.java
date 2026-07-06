@@ -576,9 +576,10 @@ public class UserServiceImpl implements UserService {
                         .last("LIMIT " + limit));
         for (Feedback fb : feedbacks) {
             User user = userMapper.selectById(fb.getUserId());
+            String roleLabel = user != null && user.getRole() == 2 ? "教师" : "学生";
             String userName = user != null ? user.getName() : "未知用户";
             ActivityVO vo = new ActivityVO();
-            vo.setContent(userName + "提交了一条反馈");
+            vo.setContent(roleLabel + userName + "提交了一条反馈");
             vo.setTime(fb.getCreatedAt());
             activities.add(vo);
         }

@@ -3,6 +3,7 @@ package com.jycz.qingyun.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,6 +16,8 @@ public class StudentAnalysis {
     private Long userId;
 
     private Integer totalStudyDuration;
+
+    private BigDecimal assignmentCorrectRate;
 
     private Integer weekStudyDuration;
 

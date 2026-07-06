@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("class")
-public class Class {//
+public class Class {
 
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -18,8 +18,10 @@ public class Class {//
 
     private String classTitle;
 
+    private String fileUrl;
+
     private String status;
 
     private LocalDateTime createTime;
-    private LocalDateTime endTime;// ← 新增字段
+    private LocalDateTime endTime;
 }
