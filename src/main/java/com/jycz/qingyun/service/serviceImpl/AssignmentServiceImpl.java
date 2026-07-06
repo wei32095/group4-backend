@@ -901,8 +901,8 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public List<PendingAssignmentVO> getPendingAssignments(Long courseId, Long studentId, Long teacherId) {
-        // 1. 校验教师是否有权限（是该课程的教师）
+    public PendingAssignmentVO getPendingAssignments(Long courseId, Long assignmentId, Long teacherId) {
+        // 1. 校验教师权限
         Course course = courseMapper.selectById(courseId);
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
@@ -911,35 +911,38 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new BusinessException(403, "您不是该课程的教师");
         }
 
-        // 2. 查询该课程下所有作业
-        LambdaQueryWrapper<Assignment> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Assignment::getCourseId, courseId)
-                .orderByDesc(Assignment::getAssignmentCreateTime);
-        List<Assignment> assignments = assignmentMapper.selectList(wrapper);
-
-        if (assignments.isEmpty()) {
-            return new ArrayList<>();
+        // 2. 查询作业
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(404, "作业不存在");
+        }
+        if (!assignment.getCourseId().equals(courseId)) {
+            throw new BusinessException(400, "作业不属于该课程");
         }
 
-        List<Long> assignmentIds = assignments.stream()
-                .map(Assignment::getId)
-                .collect(Collectors.toList());
-
-        // 3. 查询该学生所有主观题提交记录（待批改：grading_status = 1）
+        // 3. 查询该作业下所有待批改的主观题（grading_status = 1）
         List<SubjectSubmit> subjectSubmits = subjectSubmitMapper.selectList(
                 new LambdaQueryWrapper<SubjectSubmit>()
-                        .in(SubjectSubmit::getAssignmentId, assignmentIds)
-                        .eq(SubjectSubmit::getUserId, studentId)
-                        .eq(SubjectSubmit::getGradingStatus, 1)  // 待批改
+                        .eq(SubjectSubmit::getAssignmentId, assignmentId)
+                        .eq(SubjectSubmit::getGradingStatus, 1)
+                        .orderByAsc(SubjectSubmit::getUserId)
         );
 
         if (subjectSubmits.isEmpty()) {
-            return new ArrayList<>();
+            return PendingAssignmentVO.builder()
+                    .assignmentId(assignment.getId())
+                    .assignmentTitle(assignment.getAssignmentTitle())
+                    .courseId(assignment.getCourseId())
+                    .courseName(course.getCourseTitle())
+                    .deadline(assignment.getDeadline())
+                    .maxScore(assignment.getMaxScore())
+                    .students(new ArrayList<>())
+                    .build();
         }
 
-        // 4. 按作业分组
+        // 4. 按学生分组
         Map<Long, List<SubjectSubmit>> submitMap = subjectSubmits.stream()
-                .collect(Collectors.groupingBy(SubjectSubmit::getAssignmentId));
+                .collect(Collectors.groupingBy(SubjectSubmit::getUserId));
 
         // 5. 查询题目信息
         List<Long> questionIds = subjectSubmits.stream()
@@ -948,22 +951,21 @@ public class AssignmentServiceImpl implements AssignmentService {
         Map<Long, Question> questionMap = questionMapper.selectBatchIds(questionIds).stream()
                 .collect(Collectors.toMap(Question::getId, q -> q));
 
-        // 6. 组装结果
-        List<PendingAssignmentVO> result = new ArrayList<>();
+        // 6. 组装学生列表
+        List<PendingAssignmentVO.StudentPendingVO> students = new ArrayList<>();
 
-        for (Assignment assignment : assignments) {
-            List<SubjectSubmit> submits = submitMap.get(assignment.getId());
-            if (submits == null || submits.isEmpty()) {
-                continue;
-            }
+        for (Map.Entry<Long, List<SubjectSubmit>> entry : submitMap.entrySet()) {
+            Long studentId = entry.getKey();
+            List<SubjectSubmit> submits = entry.getValue();
 
-            // 获取该作业的所有待批改主观题
+            User student = userMapper.selectById(studentId);
+            String studentName = student != null ? student.getName() : "未知学生";
+
             List<PendingAssignmentVO.SubjectiveQuestionVO> questions = new ArrayList<>();
             for (SubjectSubmit ss : submits) {
                 Question q = questionMap.get(ss.getQuestionId());
                 if (q != null) {
                     questions.add(PendingAssignmentVO.SubjectiveQuestionVO.builder()
-
                             .sortOrder(q.getSortOrder())
                             .stem(q.getStem())
                             .perscore(q.getPerscore())
@@ -973,26 +975,26 @@ public class AssignmentServiceImpl implements AssignmentService {
                 }
             }
 
-            if (questions.isEmpty()) {
-                continue;
-            }
-
-            // 获取学生提交时间（取第一个主观题提交时间）
             LocalDateTime submitTime = submits.get(0).getFinishTime();
 
-            result.add(PendingAssignmentVO.builder()
-                    .assignmentId(assignment.getId())
-                    .assignmentTitle(assignment.getAssignmentTitle())
-                    .courseId(assignment.getCourseId())
-                    .courseName(course.getCourseTitle())
-                    .deadline(assignment.getDeadline())
-                    .maxScore(assignment.getMaxScore())
+            students.add(PendingAssignmentVO.StudentPendingVO.builder()
+                    .studentId(studentId)
+                    .studentName(studentName)
                     .submitTime(submitTime)
                     .subjectiveQuestions(questions)
                     .build());
         }
 
-        return result;
+        // 7. 返回结果
+        return PendingAssignmentVO.builder()
+                .assignmentId(assignment.getId())
+                .assignmentTitle(assignment.getAssignmentTitle())
+                .courseId(assignment.getCourseId())
+                .courseName(course.getCourseTitle())
+                .deadline(assignment.getDeadline())
+                .maxScore(assignment.getMaxScore())
+                .students(students)
+                .build();
     }
 
     /**

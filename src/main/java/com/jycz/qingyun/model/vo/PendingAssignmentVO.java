@@ -16,17 +16,24 @@ public class PendingAssignmentVO {
     private String courseName;
     private LocalDateTime deadline;
     private Integer maxScore;
-    private LocalDateTime submitTime;
-    private List<SubjectiveQuestionVO> subjectiveQuestions;
+    private List<StudentPendingVO> students;  // ← 改为学生列表
+
+    @Data
+    @Builder
+    public static class StudentPendingVO {
+        private Long studentId;
+        private String studentName;
+        private LocalDateTime submitTime;
+        private List<SubjectiveQuestionVO> subjectiveQuestions;
+    }
 
     @Data
     @Builder
     public static class SubjectiveQuestionVO {
-
         private Integer sortOrder;
         private String stem;
         private Integer perscore;
         private String answerPicture;
-        private Integer gradingStatus;  // 1-待批改，2-已批改
+        private Integer gradingStatus;
     }
 }

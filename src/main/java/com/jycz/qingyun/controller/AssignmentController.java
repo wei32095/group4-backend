@@ -132,12 +132,12 @@ public class AssignmentController {
 
     /**
      * 教师查看待批改作业列表
-     * GET /qingyun/assignment/teacher/pending?courseId=1&studentId=2
+     * GET /qingyun/assignment/teacher/pending?courseId=8&assignmentId=20
      */
     @GetMapping("/teacher/pending")
-    public ApiResult<List<PendingAssignmentVO>> getPendingAssignments(
+    public ApiResult<PendingAssignmentVO> getPendingAssignments(
             @RequestParam Long courseId,
-            @RequestParam Long studentId,
+            @RequestParam Long assignmentId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
@@ -147,8 +147,7 @@ public class AssignmentController {
             return ApiResult.error(403, "仅教师可查看");
         }
 
-        // ✅ 直接用 userId 作为 teacherId
-        List<PendingAssignmentVO> response = assignmentService.getPendingAssignments(courseId, studentId, userId);
+        PendingAssignmentVO response = (PendingAssignmentVO) assignmentService.getPendingAssignments(courseId, assignmentId, userId);
         return ApiResult.success(response);
     }
 }
