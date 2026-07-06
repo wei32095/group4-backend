@@ -3,12 +3,15 @@ package com.jycz.qingyun.controller;
 import com.jycz.qingyun.model.dto.AdminNoticePublishRequest;
 import com.jycz.qingyun.model.dto.ApiResult;
 import com.jycz.qingyun.model.dto.FeedbackReplyRequest;
+import com.jycz.qingyun.model.vo.ActivityVO;
 import com.jycz.qingyun.model.vo.AdminDashboardVO;
 import com.jycz.qingyun.model.vo.AdminNoticeListVO;
 import com.jycz.qingyun.model.vo.AdminUserListVO;
 import com.jycz.qingyun.model.vo.FeedbackDetailVO;
 import com.jycz.qingyun.model.vo.FeedbackListVO;
 import com.jycz.qingyun.service.FeedbackService;
+
+import java.util.List;
 import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,6 +72,24 @@ public class AdminController {
 
         AdminDashboardVO vo = userService.getDashboard();
         return ApiResult.success(vo);
+    }
+
+    /**
+     * 管理员查看最近活动列表
+     * GET /qingyun/admin/activities?limit=20
+     */
+    @GetMapping("/activities")
+    public ApiResult<List<ActivityVO>> getActivities(
+            @RequestParam(defaultValue = "20") Integer limit,
+            HttpServletRequest httpRequest) {
+
+        Integer role = (Integer) httpRequest.getAttribute("role");
+        if (role == null || role != 3) {
+            return ApiResult.error(403, "仅管理员可查看");
+        }
+
+        List<ActivityVO> list = userService.getRecentActivities(limit);
+        return ApiResult.success(list);
     }
 
     /**

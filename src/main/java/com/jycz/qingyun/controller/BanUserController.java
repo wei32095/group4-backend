@@ -18,10 +18,10 @@ public class BanUserController {
     private final UserService userService;
 
     /**
-     * 管理员封禁/解封用户
-     * PUT /qingyun/user/ban
+     * 管理员封禁用户
+     * POST /qingyun/user/ban
      */
-    @PutMapping("/ban")
+    @PostMapping("/ban")
     public ApiResult<Void> banUser(
             @Valid @RequestBody BanUserRequest request,
             HttpServletRequest httpRequest) {
@@ -34,6 +34,26 @@ public class BanUserController {
         }
 
         userService.banUser(request, adminId);
+        return ApiResult.success();
+    }
+
+    /**
+     * 管理员解封用户
+     * POST /qingyun/user/unban
+     */
+    @PostMapping("/unban")
+    public ApiResult<Void> unbanUser(
+            @Valid @RequestBody BanUserRequest request,
+            HttpServletRequest httpRequest) {
+
+        Long adminId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
+
+        if (role == null || role != 3) {
+            return ApiResult.error(403, "仅管理员可操作");
+        }
+
+        userService.unbanUser(request.getUserId(), adminId);
         return ApiResult.success();
     }
 }

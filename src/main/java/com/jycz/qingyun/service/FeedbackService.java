@@ -24,4 +24,9 @@ public interface FeedbackService {
      * 管理员回复反馈
      */
     void replyFeedback(Long id, String replyContent);
+
+    /**
+     * 统计未处理反馈数量
+     */
+    long countPending();
 }
