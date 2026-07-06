@@ -1,10 +1,13 @@
 package com.jycz.qingyun.service;
 
 import com.jycz.qingyun.model.dto.*;
-import com.jycz.qingyun.model.vo.LoginVO;
+import com.jycz.qingyun.model.vo.ActivityVO;
 import com.jycz.qingyun.model.vo.AdminDashboardVO;
 import com.jycz.qingyun.model.vo.AdminUserListVO;
+import com.jycz.qingyun.model.vo.LoginVO;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
+
+import java.util.List;
 
 public interface UserService {
 
@@ -49,6 +52,8 @@ public interface UserService {
     ApiResult<Boolean> updatePassword(Long userId, PasswordUpdateRequest request);
     void banUser(BanUserRequest request, Long adminId);
 
+    void unbanUser(Long userId, Long adminId);
+
     /**
      * 管理员查看用户列表（分页）
      */
@@ -58,4 +63,9 @@ public interface UserService {
      * 管理员看板数据
      */
     AdminDashboardVO getDashboard();
+
+    /**
+     * 管理员查看最近活动列表
+     */
+    List<ActivityVO> getRecentActivities(int limit);
 }

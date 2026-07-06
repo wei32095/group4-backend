@@ -10,6 +10,7 @@ public class AdminDashboardVO {
     private UserStats userStats;
     private CourseStats courseStats;
     private TodayActivity todayActivity;
+    private long pendingFeedbackCount;
 
     @Data
     public static class UserStats {

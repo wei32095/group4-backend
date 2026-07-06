@@ -1,5 +1,6 @@
 package com.jycz.qingyun.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -11,9 +12,7 @@ public class BanUserRequest {
     @NotNull(message = "用户ID不能为空")
     private Long userId;
 
-    @NotNull(message = "封禁状态不能为空")
-    private Integer status;  // 0-封禁，1-解封
-
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime banExpireTime;
 
     private String banReason;

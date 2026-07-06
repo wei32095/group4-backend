@@ -128,4 +128,10 @@ public class FeedbackServiceImpl implements FeedbackService {
         noticeService.addNotice(fb.getUserId(), "反馈回复",
                 "您提交的反馈已收到回复：" + replyContent, 0);
     }
+
+    @Override
+    public long countPending() {
+        return feedbackMapper.selectCount(
+                new LambdaQueryWrapper<Feedback>().eq(Feedback::getStatus, 0));
+    }
 }

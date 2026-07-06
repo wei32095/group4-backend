@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jycz.qingyun.mapper.ClassCheckMapper;
 import com.jycz.qingyun.mapper.CourseMapper;
+import com.jycz.qingyun.mapper.FeedbackMapper;
 import com.jycz.qingyun.mapper.PointsRecordMapper;
 import com.jycz.qingyun.mapper.StudyRoomMapper;
 import com.jycz.qingyun.mapper.UserMapper;
@@ -16,13 +17,17 @@ import com.jycz.qingyun.model.dto.MpLoginRequest;
 import com.jycz.qingyun.model.dto.PasswordUpdateRequest;
 import com.jycz.qingyun.model.dto.RegisterRequest;
 import com.jycz.qingyun.model.dto.VerifyCodeLoginRequest;
+import com.jycz.qingyun.model.vo.ActivityVO;
 import com.jycz.qingyun.model.vo.AdminDashboardVO;
 import com.jycz.qingyun.model.vo.AdminUserListVO;
 import com.jycz.qingyun.model.vo.AdminUserVO;
+import com.jycz.qingyun.service.FeedbackService;
 import com.jycz.qingyun.service.VerifyCodeService;
 import com.jycz.qingyun.utils.BusinessException;
 import com.jycz.qingyun.utils.JwtUtil;
 import com.jycz.qingyun.utils.WxUtil;
+import com.jycz.qingyun.model.entity.Course;
+import com.jycz.qingyun.model.entity.Feedback;
 import com.jycz.qingyun.model.entity.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.jycz.qingyun.model.vo.StudentInfoVO;
@@ -73,6 +78,12 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private ClassCheckMapper classCheckMapper;
+
+    @Autowired
+    private FeedbackService feedbackService;
+
+    @Autowired
+    private FeedbackMapper feedbackMapper;
 
     @Override
     public ApiResult<LoginVO> login(LoginRequest request) {
@@ -421,29 +432,41 @@ public class UserServiceImpl implements UserService {
         }
 
         // 4. 封禁操作
-        if (request.getStatus() == 0) {
-            // 封禁
-            if (request.getBanExpireTime() == null) {
-                throw new BusinessException(400, "封禁时请指定封禁到期时间");
-            }
-            if (request.getBanExpireTime().isBefore(LocalDateTime.now())) {
-                throw new BusinessException(400, "封禁到期时间不能早于当前时间");
-            }
-            targetUser.setStatus(0);
-            targetUser.setBanExpireTime(request.getBanExpireTime());
-            targetUser.setBanReason(request.getBanReason());
-            log.info("用户被封禁: userId={}, 操作人={}", targetUser.getId(), adminId);
-        } else if (request.getStatus() == 1) {
-            // 解封
-            targetUser.setStatus(1);
-            targetUser.setBanExpireTime(null);
-            targetUser.setBanReason(null);
-            log.info("用户被解封: userId={}, 操作人={}", targetUser.getId(), adminId);
-        } else {
-            throw new BusinessException(400, "状态值错误，0-封禁，1-解封");
+        if (request.getBanExpireTime() == null) {
+            throw new BusinessException(400, "封禁时请指定封禁到期时间");
         }
+        if (request.getBanExpireTime().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(400, "封禁到期时间不能早于当前时间");
+        }
+        targetUser.setStatus(0);
+        targetUser.setBanExpireTime(request.getBanExpireTime());
+        targetUser.setBanReason(request.getBanReason());
+        log.info("用户被封禁: userId={}, 操作人={}", targetUser.getId(), adminId);
 
         // 5. 更新数据库
+        userMapper.updateById(targetUser);
+    }
+
+    @Override
+    @Transactional
+    public void unbanUser(Long userId, Long adminId) {
+        // 1. 查询目标用户
+        User targetUser = userMapper.selectById(userId);
+        if (targetUser == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        // 2. 不能操作管理员
+        if (targetUser.getRole() == 3) {
+            throw new BusinessException(403, "不能操作管理员账号");
+        }
+
+        // 3. 解封
+        targetUser.setStatus(1);
+        targetUser.setBanExpireTime(null);
+        targetUser.setBanReason(null);
+        log.info("用户被解封: userId={}, 操作人={}", targetUser.getId(), adminId);
+
         userMapper.updateById(targetUser);
     }
 
@@ -538,7 +561,50 @@ public class UserServiceImpl implements UserService {
         vo.setUserStats(userStats);
         vo.setCourseStats(courseStats);
         vo.setTodayActivity(todayActivity);
+        vo.setPendingFeedbackCount(feedbackService.countPending());
         return vo;
+    }
+
+    @Override
+    public List<ActivityVO> getRecentActivities(int limit) {
+        List<ActivityVO> activities = new ArrayList<>();
+
+        // 1. 查询最近的反馈提交
+        List<Feedback> feedbacks = feedbackMapper.selectList(
+                new LambdaQueryWrapper<Feedback>()
+                        .orderByDesc(Feedback::getCreatedAt)
+                        .last("LIMIT " + limit));
+        for (Feedback fb : feedbacks) {
+            User user = userMapper.selectById(fb.getUserId());
+            String userName = user != null ? user.getName() : "未知用户";
+            ActivityVO vo = new ActivityVO();
+            vo.setContent(userName + "提交了一条反馈");
+            vo.setTime(fb.getCreatedAt());
+            activities.add(vo);
+        }
+
+        // 2. 查询最近待审核的课程创建
+        List<Course> courses = courseMapper.selectList(
+                new LambdaQueryWrapper<Course>()
+                        .eq(Course::getAuditStatus, 0)
+                        .orderByDesc(Course::getCreatedAt)
+                        .last("LIMIT " + limit));
+        for (Course course : courses) {
+            User user = userMapper.selectById(course.getUserId());
+            String userName = user != null ? user.getName() : "未知用户";
+            ActivityVO vo = new ActivityVO();
+            vo.setContent("教师" + userName + "申请创建了一门课程，待审核");
+            vo.setTime(course.getCreatedAt());
+            activities.add(vo);
+        }
+
+        // 3. 按时间倒序排序，截取前 limit 条
+        activities.sort((a, b) -> b.getTime().compareTo(a.getTime()));
+        if (activities.size() > limit) {
+            activities = activities.subList(0, limit);
+        }
+
+        return activities;
     }
 
     /**
