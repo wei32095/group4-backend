@@ -749,6 +749,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         int totalStudents = courseStudentMapper.countByCourseId(courseId);
 
+
         List<AssignmentTeacherListVO> result = new ArrayList<>();
         for (Assignment assignment : assignments) {
             List<ObjectSubmit> objectSubmits = objectSubmitMapper.selectList(

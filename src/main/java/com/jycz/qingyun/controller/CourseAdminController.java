@@ -28,7 +28,7 @@ public class CourseAdminController {
      */
     @GetMapping("/admin/user-courses")
     public ApiResult<List<AdminUserCourseVO>> getAdminUserCourses(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             HttpServletRequest httpRequest) {
@@ -37,6 +37,10 @@ public class CourseAdminController {
 
         if (role == null || role != 3) {
             return ApiResult.error(403, "仅管理员可查看");
+        }
+
+        if (userId == null) {
+            return ApiResult.error(400, "参数 userId 不能为空");
         }
 
         List<AdminUserCourseVO> response = courseService.getAdminUserCourses(userId, pageNum, pageSize);

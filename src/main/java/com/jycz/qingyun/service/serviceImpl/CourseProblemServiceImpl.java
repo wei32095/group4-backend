@@ -383,4 +383,58 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                 .createdAt(problem.getCreatedAt())
                 .build();
     }
+
+    // ========== 5. 删除问题（连带所有回复） ==========
+    @Override
+    @Transactional
+    public void deleteProblem(Long problemId, Long userId) {
+        CourseProblem problem = courseProblemMapper.selectById(problemId);
+        if (problem == null) {
+            throw new BusinessException(404, "问题不存在");
+        }
+
+        if (!problem.getUserId().equals(userId)) {
+            throw new BusinessException(403, "只能删除自己的问题");
+        }
+
+        // 删除该问题下的所有回复
+        LambdaQueryWrapper<CourseProblemReply> replyWrapper = new LambdaQueryWrapper<>();
+        replyWrapper.eq(CourseProblemReply::getProblemId, problemId);
+        courseProblemReplyMapper.delete(replyWrapper);
+
+        // 删除问题本身
+        courseProblemMapper.deleteById(problemId);
+
+        log.info("问题已删除: problemId={}, userId={}", problemId, userId);
+    }
+
+    // ========== 6. 删除回复 ==========
+    @Override
+    @Transactional
+    public void deleteReply(Long replyId, Long userId) {
+        CourseProblemReply reply = courseProblemReplyMapper.selectById(replyId);
+        if (reply == null) {
+            throw new BusinessException(404, "回复不存在");
+        }
+
+        // AI 回复不允许删除
+        if (reply.getIsAi() != null && reply.getIsAi() == 1) {
+            throw new BusinessException(403, "AI 回复无法删除");
+        }
+
+        if (!reply.getUserId().equals(userId)) {
+            throw new BusinessException(403, "只能删除自己的回复");
+        }
+
+        courseProblemReplyMapper.deleteById(replyId);
+
+        // 更新问题回复数减 1
+        CourseProblem problem = courseProblemMapper.selectById(reply.getProblemId());
+        if (problem != null && problem.getReplyCount() > 0) {
+            problem.setReplyCount(problem.getReplyCount() - 1);
+            courseProblemMapper.updateById(problem);
+        }
+
+        log.info("回复已删除: replyId={}, userId={}", replyId, userId);
+    }
 }
