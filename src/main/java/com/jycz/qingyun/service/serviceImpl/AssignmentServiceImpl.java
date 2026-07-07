@@ -522,7 +522,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         int totalStudents = courseStudentMapper.countByCourseId(courseId);
 
         List<AssignmentTeacherListVO> result = new ArrayList<>();
+
         for (Assignment assignment : assignments) {
+            // 1. 统计提交人数
             List<ObjectSubmit> objectSubmits = objectSubmitMapper.selectList(
                     new LambdaQueryWrapper<ObjectSubmit>()
                             .eq(ObjectSubmit::getAssignmentId, assignment.getId())
@@ -540,6 +542,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             double submissionRate = totalStudents > 0 ?
                     Math.round((double) submitCount / totalStudents * 100 * 100) / 100.0 : 0.0;
 
+            // 2. 计算平均分
             double avgScore = 0.0;
             int gradedCount = 0;
             int totalScoreSum = 0;
@@ -569,6 +572,47 @@ public class AssignmentServiceImpl implements AssignmentService {
             avgScore = gradedCount > 0 ?
                     Math.round((double) totalScoreSum / gradedCount * 100) / 100.0 : 0.0;
 
+            // 3. ========== 新增：计算每道题的正确率 ==========
+            List<AssignmentTeacherListVO.QuestionStatVO> questionStats = new ArrayList<>();
+
+            // 查询该作业的所有题目
+            List<Question> questions = questionMapper.selectList(
+                    new LambdaQueryWrapper<Question>()
+                            .eq(Question::getAssignmentId, assignment.getId())
+                            .orderByAsc(Question::getSortOrder)
+            );
+
+            for (Question q : questions) {
+                // 只统计客观题（type != 5）
+                if (q.getType() == 5) continue;
+
+                // 获取该题目的所有提交
+                List<ObjectSubmit> submits = objectSubmitMapper.selectList(
+                        new LambdaQueryWrapper<ObjectSubmit>()
+                                .eq(ObjectSubmit::getQuestionId, q.getId())
+                );
+
+                int totalCount = submits.size();
+                int correctCount = 0;
+
+                for (ObjectSubmit os : submits) {
+                    if (q.getAnswer() != null && q.getAnswer().equals(os.getAnswerWord())) {
+                        correctCount++;
+                    }
+                }
+
+                double correctRate = totalCount > 0 ?
+                        Math.round((double) correctCount / totalCount * 100 * 100) / 100.0 : 0.0;
+
+                questionStats.add(AssignmentTeacherListVO.QuestionStatVO.builder()
+                        .sortOrder(q.getSortOrder())
+                        .correctRate(correctRate)
+                        .totalCount(totalCount)
+                        .correctCount(correctCount)
+                        .build());
+            }
+            // ========== 新增结束 ==========
+
             result.add(AssignmentTeacherListVO.builder()
                     .assignmentId(assignment.getId())
                     .assignmentTitle(assignment.getAssignmentTitle())
@@ -579,6 +623,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                     .submissionRate(submissionRate)
                     .avgScore(avgScore)
                     .createdAt(assignment.getAssignmentCreateTime())
+                    .questionStats(questionStats)  // ← 新增
                     .build());
         }
 

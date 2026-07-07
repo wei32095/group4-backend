@@ -54,13 +54,31 @@ public class AssignmentController {
         return ApiResult.success(response);
     }
 
+    /**
+     * 查看作业详情（支持查看自己的或指定学生的）
+     * GET /qingyun/assignment/detail?assignmentId=21
+     * GET /qingyun/assignment/detail?assignmentId=21&studentId=3  （老师查看指定学生）
+     */
     @GetMapping("/detail")
     public ApiResult<AssignmentDetailVO> getAssignmentDetail(
             @RequestParam Long assignmentId,
+            @RequestParam(required = false) Long studentId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
+        Integer role = (Integer) httpRequest.getAttribute("role");
 
+        // 如果传了 studentId，校验是否是老师
+        if (studentId != null) {
+            if (role == null || role != 2) {
+                return ApiResult.error(403, "仅教师可查看其他学生的作业");
+            }
+            // 使用 studentId 查询
+            AssignmentDetailVO response = assignmentService.getAssignmentDetail(assignmentId, studentId);
+            return ApiResult.success(response);
+        }
+
+        // 不传 studentId，查看自己的
         AssignmentDetailVO response = assignmentService.getAssignmentDetail(assignmentId, userId);
         return ApiResult.success(response);
     }
