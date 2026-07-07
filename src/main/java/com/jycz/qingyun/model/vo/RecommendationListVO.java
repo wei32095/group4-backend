@@ -11,11 +11,12 @@ import java.util.Map;
 @Builder
 public class RecommendationListVO {
 
+    private Long recommendationId;
     private Long assignmentId;
     private String assignmentTitle;
     private Long courseId;
     private String courseName;
-    private LocalDateTime createdAt;
-    private String status;  // pending / completed
+    private String status;
+    private Boolean isCompleted;
     private List<Map<String, Object>> questions;
 }

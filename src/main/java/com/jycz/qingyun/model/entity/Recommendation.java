@@ -16,10 +16,12 @@ public class Recommendation {
 
     private Long assignmentId;
 
-    private String questions;  // JSON 格式存储
+    private String questions;
 
-    private Integer status;    // 0-待练习，1-已完成
+    private Integer status;      // 0-待练习，1-已完成
 
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
+    private Long parentId;       // 新增：父推荐ID
+
+    private Integer isCompleted; // 新增：0-进行中，1-全部正确完成
+
 }

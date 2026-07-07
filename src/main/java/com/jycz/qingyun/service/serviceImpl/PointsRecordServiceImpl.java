@@ -30,7 +30,6 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     @Override
     @Transactional
     public void addPoints(Long userId, int points, int sourceType) {
-        // 查询当前积分（从 user 表读）
         Integer currentPoints = userMapper.getPoints(userId);
         if (currentPoints == null) {
             currentPoints = 0;
@@ -45,7 +44,6 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         record.setChangeTime(LocalDateTime.now());
         pointsRecordMapper.insert(record);
 
-        // 同步更新 user.points
         userMapper.updatePoints(userId, points);
 
         log.info("加分成功: userId={}, points={}, sourceType={}, newBalance={}",
@@ -55,14 +53,12 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     @Override
     @Transactional
     public void deductPoints(Long userId, int points, int sourceType) {
-        // 原子扣分：SQL 层校验余额，0 行影响 = 余额不足
         int affected = userMapper.deductPointsIfSufficient(userId, points);
         if (affected == 0) {
             Integer currentPoints = userMapper.getPoints(userId);
             throw new BusinessException(400, "积分不足，当前积分：" + (currentPoints != null ? currentPoints : 0));
         }
 
-        // 扣分后从 user 表读最新余额（此时已扣减完成）
         Integer newBalance = userMapper.getPoints(userId);
 
         PointsRecord record = new PointsRecord();
@@ -101,21 +97,18 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         return listVO;
     }
 
-    // ========== 新增：积分规则方法 ==========
+    // ========== 积分规则方法 ==========
 
     @Override
     @Transactional
     public void handleCheckinPoints(Long userId, Integer checkStatus) {
         if (checkStatus == 1) {
-            // 正常签到：+5分
             addPoints(userId, 5, 1);
             log.info("签到成功加分: userId={}, +5分", userId);
         } else if (checkStatus == 3) {
-            // 缺勤：-5分
             deductPoints(userId, 5, 1);
             log.info("缺勤扣分: userId={}, -5分", userId);
         }
-        // 迟到（checkStatus == 2）：无变化
     }
 
     @Override
@@ -131,7 +124,6 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         if (score == null || score <= 0) {
             return;
         }
-        // 成绩 ÷ 5，保留整数
         int points = score / 5;
         if (points > 0) {
             addPoints(userId, points, 3);
@@ -144,6 +136,14 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     public void handleProblemRepliedPoints(Long userId) {
         addPoints(userId, 5, 6);
         log.info("问题被老师回复加分: userId={}, +5分", userId);
+    }
+
+    // ========== 新增：推荐习题全部正确加分 ==========
+    @Override
+    @Transactional
+    public void handleRecommendationPoints(Long userId) {
+        addPoints(userId, 5, 7);
+        log.info("推荐习题全部正确加分: userId={}, +5分", userId);
     }
 
     private PointsRecordVO toVO(PointsRecord record) {

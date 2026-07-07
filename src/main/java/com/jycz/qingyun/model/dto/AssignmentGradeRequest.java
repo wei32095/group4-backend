@@ -20,7 +20,7 @@ public class AssignmentGradeRequest {
     @Data
     public static class GradeRequest {
         @NotNull(message = "题目ID不能为空")
-        private Long questionId;
+        private Integer sortOrder;
 
         @NotNull(message = "得分不能为空")
         private Integer score;

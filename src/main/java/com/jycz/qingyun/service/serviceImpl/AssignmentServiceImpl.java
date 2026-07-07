@@ -460,6 +460,12 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new BusinessException(404, "作业不存在");
         }
 
+        LambdaQueryWrapper<Question> qWrapper = new LambdaQueryWrapper<>();
+        qWrapper.eq(Question::getAssignmentId, request.getAssignmentId());
+        List<Question> questions = questionMapper.selectList(qWrapper);
+        Map<Integer, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(Question::getSortOrder, q -> q, (a, b) -> a));
+
         List<ObjectSubmit> objectSubmits = objectSubmitMapper.selectByAssignmentAndUser(
                 request.getAssignmentId(), request.getStudentId());
         int autoScore = objectSubmits.stream()
@@ -469,14 +475,23 @@ public class AssignmentServiceImpl implements AssignmentService {
         int totalScore = autoScore;
 
         for (AssignmentGradeRequest.GradeRequest grade : request.getGrades()) {
+            // 通过 sortOrder 获取题目
+            Question q = questionMap.get(grade.getSortOrder());
+            if (q == null) {
+                log.warn("未找到题目序号 {} 的题目", grade.getSortOrder());
+                continue;
+            }
+
+            // 更新主观题批改
             int rows = subjectSubmitMapper.updateSubjectScore(
                     request.getAssignmentId(),
                     request.getStudentId(),
-                    grade.getQuestionId(),
+                    q.getId(),  // 用 questionId
                     grade.getScore(),
                     grade.getTeacherComment()
             );
-            log.info("批改主观题: questionId={}, rows={}", grade.getQuestionId(), rows);
+            log.info("批改主观题: sortOrder={}, questionId={}, rows={}",
+                    grade.getSortOrder(), q.getId(), rows);
 
             if (rows > 0 && grade.getScore() != null) {
                 totalScore += grade.getScore();
