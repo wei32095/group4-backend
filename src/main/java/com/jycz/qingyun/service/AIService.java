@@ -266,7 +266,7 @@ public class AIService {
     private String callAI(String prompt) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
-        requestBody.put("temperature", 0.7);
+        requestBody.put("temperature", 0.9);
         requestBody.put("max_tokens", 800);
 
         List<Map<String, String>> messages = new ArrayList<>();
@@ -422,24 +422,41 @@ public class AIService {
             for (String q : wrongQuestions) {
                 sb.append("- ").append(q).append("\n");
             }
+            sb.append("\n【重要要求】\n");
+            sb.append("1. 生成的练习题必须与参考错题完全不同，不能是同一道题\n");
+            sb.append("2. 生成 1 道全新的练习题，考查同一个知识点但不同角度\n");
+            sb.append("3. 题型可以是：单选、填空\n");
+            sb.append("4. 要有正确答案和解析\n");
+            sb.append("5. 包含 sortOrder 字段，值为 1\n");
+            sb.append("6. 返回 JSON 数组格式：\n");
+            sb.append("   [{\n");
+            sb.append("     \"stem\": \"题干\",\n");
+            sb.append("     \"type\": 1,\n");
+            sb.append("     \"options\": [\"A.xxx\", \"B.xxx\"],\n");
+            sb.append("     \"answer\": \"答案\",\n");
+            sb.append("     \"explanation\": \"解析\",\n");
+            sb.append("     \"knowledgePoint\": \"知识点名称\",\n");
+            sb.append("     \"sortOrder\": 1\n");
+            sb.append("   }]\n");
+        } else {
+            sb.append("\n【要求】\n");
+            sb.append("1. 生成 1 道练习题\n");
+            sb.append("2. 题型可以是：单选、填空\n");
+            sb.append("3. 要有正确答案和解析\n");
+            sb.append("4. 包含 sortOrder 字段，值为 1\n");
+            sb.append("5. 返回 JSON 数组格式：\n");
+            sb.append("   [{\n");
+            sb.append("     \"stem\": \"题干\",\n");
+            sb.append("     \"type\": 1,\n");
+            sb.append("     \"options\": [\"A.xxx\", \"B.xxx\"],\n");
+            sb.append("     \"answer\": \"答案\",\n");
+            sb.append("     \"explanation\": \"解析\",\n");
+            sb.append("     \"knowledgePoint\": \"知识点名称\",\n");
+            sb.append("     \"sortOrder\": 1\n");
+            sb.append("   }]\n");
         }
 
-        sb.append("\n【要求】\n");
-        sb.append("1. 生成 1 道练习题\n");
-        sb.append("2. 题型可以是：单选、填空\n");
-        sb.append("3. 要有正确答案和解析\n");
-        sb.append("4. 包含 sortOrder 字段，值为 1\n");
-        sb.append("5. 返回 JSON 数组格式：\n");
-        sb.append("   [{\n");
-        sb.append("     \"stem\": \"题干\",\n");
-        sb.append("     \"type\": 1,\n");
-        sb.append("     \"options\": [\"A.xxx\", \"B.xxx\"],\n");
-        sb.append("     \"answer\": \"答案\",\n");
-        sb.append("     \"explanation\": \"解析\",\n");
-        sb.append("     \"knowledgePoint\": \"知识点名称\",\n");
-        sb.append("     \"sortOrder\": 1\n");
-        sb.append("   }]\n");
-        sb.append("请只返回 JSON 数组。");
+        sb.append("\n请只返回 JSON 数组。");
 
         return sb.toString();
     }
