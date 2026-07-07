@@ -5,12 +5,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jycz.qingyun.model.entity.Assignment;
 import com.jycz.qingyun.model.entity.AssignmentWeakPoints;
-import com.jycz.qingyun.model.entity.Course;
 import com.jycz.qingyun.model.vo.WeakPointVO;
 import com.jycz.qingyun.mapper.AssignmentMapper;
 import com.jycz.qingyun.mapper.AssignmentWeakPointsMapper;
 import com.jycz.qingyun.mapper.CourseMapper;
 import com.jycz.qingyun.service.WeakPointService;
+import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,7 +37,6 @@ public class WeakPointServiceImpl implements WeakPointService {
         wrapper.eq(AssignmentWeakPoints::getUserId, userId)
                 .eq(AssignmentWeakPoints::getStatus, 0);
 
-
         List<AssignmentWeakPoints> list = assignmentWeakPointsMapper.selectList(wrapper);
 
         if (list.isEmpty()) {
@@ -47,7 +46,7 @@ public class WeakPointServiceImpl implements WeakPointService {
         // 2. 筛选：如果有 assignmentId，直接过滤
         List<AssignmentWeakPoints> filteredList = list;
         if (assignmentId != null) {
-            filteredList = list.stream()
+            filteredList = filteredList.stream()
                     .filter(awp -> awp.getAssignmentId().equals(assignmentId))
                     .collect(Collectors.toList());
         }
@@ -67,7 +66,6 @@ public class WeakPointServiceImpl implements WeakPointService {
                 return new ArrayList<>();
             }
 
-            // 查询这些作业属于哪个课程
             List<Assignment> assignments = assignmentMapper.selectBatchIds(assignmentIds);
             List<Long> validAssignmentIds = assignments.stream()
                     .filter(a -> a.getCourseId().equals(courseId))
@@ -103,28 +101,30 @@ public class WeakPointServiceImpl implements WeakPointService {
             Assignment assignment = assignmentMap.get(awp.getAssignmentId());
             String assignmentTitle = assignment != null ? assignment.getAssignmentTitle() : "未知作业";
 
-            List<Map<String, Object>> weakPoints;
-            try {
-                weakPoints = objectMapper.readValue(awp.getWeakPoints(), new TypeReference<List<Map<String, Object>>>() {});
-            } catch (Exception e) {
-                log.error("解析薄弱知识点失败: {}", e.getMessage());
-                continue;
+            // 解析 wrong_questions
+            List<String> wrongQuestions = new ArrayList<>();
+            if (awp.getWrongQuestions() != null && !awp.getWrongQuestions().isEmpty()) {
+                try {
+                    wrongQuestions = objectMapper.readValue(awp.getWrongQuestions(),
+                            new TypeReference<List<String>>() {});
+                } catch (Exception e) {
+                    log.error("解析错题列表失败: {}", e.getMessage());
+                }
             }
 
-            for (Map<String, Object> wp : weakPoints) {
-                String status = awp.getStatus() == 1 ? "completed" : "pending";
-                result.add(WeakPointVO.builder()
-                        .weakPointId(awp.getId())
-                        .assignmentId(awp.getAssignmentId())
-                        .assignmentTitle(assignmentTitle)
-                        .knowledgePoint((String) wp.get("knowledgePoint"))
-                        .explanation((String) wp.get("explanation"))
-                        .wrongCount((Integer) wp.getOrDefault("wrongCount", 0))
-                        .practiceCount(awp.getPracticeCount())
-                        .status(status)
-                        .wrongQuestions((List<String>) wp.getOrDefault("wrongQuestions", new ArrayList<>()))
-                        .build());
-            }
+            String status = awp.getStatus() == 1 ? "completed" : "pending";
+
+            result.add(WeakPointVO.builder()
+                    .weakPointId(awp.getId())
+                    .assignmentId(awp.getAssignmentId())
+                    .assignmentTitle(assignmentTitle)
+                    .knowledgePoint(awp.getKnowledgePoint())
+                    .explanation(awp.getExplanation())
+                    .wrongCount(awp.getWrongCount())
+                    .practiceCount(awp.getPracticeCount())
+                    .status(status)
+                    .wrongQuestions(wrongQuestions)
+                    .build());
         }
 
         return result;

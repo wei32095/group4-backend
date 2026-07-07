@@ -310,24 +310,29 @@ public class AssignmentServiceImpl implements AssignmentService {
         LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AssignmentWeakPoints::getAssignmentId, assignmentId)
                 .eq(AssignmentWeakPoints::getUserId, userId);
-        AssignmentWeakPoints awp = assignmentWeakPointsMapper.selectOne(wrapper);
+        List<AssignmentWeakPoints> awpList = assignmentWeakPointsMapper.selectList(wrapper);
 
-        if (awp != null && awp.getWeakPoints() != null && !awp.getWeakPoints().isEmpty()) {
-            try {
-                List<Map<String, Object>> weakPointMaps = objectMapper.readValue(
-                        awp.getWeakPoints(),
-                        new TypeReference<List<Map<String, Object>>>() {}
-                );
-                for (Map<String, Object> map : weakPointMaps) {
-                    weakPoints.add(AssignmentDetailVO.WeakPointVO.builder()
-                            .knowledgePoint((String) map.get("knowledgePoint"))
-                            .explanation((String) map.get("explanation"))
-                            .wrongCount((Integer) map.getOrDefault("wrongCount", 0))
-                            .wrongQuestions((List<String>) map.getOrDefault("wrongQuestions", new ArrayList<>()))
-                            .build());
+        if (awpList != null && !awpList.isEmpty()) {
+            for (AssignmentWeakPoints awp : awpList) {
+                // 解析 wrongQuestions
+                List<String> wrongQuestions = new ArrayList<>();
+                if (awp.getWrongQuestions() != null && !awp.getWrongQuestions().isEmpty()) {
+                    try {
+                        wrongQuestions = objectMapper.readValue(
+                                awp.getWrongQuestions(),
+                                new TypeReference<List<String>>() {}
+                        );
+                    } catch (Exception e) {
+                        log.error("解析错题列表失败: {}", e.getMessage());
+                    }
                 }
-            } catch (Exception e) {
-                log.error("解析薄弱知识点失败: {}", e.getMessage());
+
+                weakPoints.add(AssignmentDetailVO.WeakPointVO.builder()
+                        .knowledgePoint(awp.getKnowledgePoint())
+                        .explanation(awp.getExplanation())
+                        .wrongCount(awp.getWrongCount())
+                        .wrongQuestions(wrongQuestions)
+                        .build());
             }
         }
 
@@ -346,6 +351,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .weakPoints(weakPoints)
                 .build();
     }
+
 
     @Override
     @Transactional

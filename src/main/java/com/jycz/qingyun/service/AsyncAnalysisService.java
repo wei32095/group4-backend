@@ -1,17 +1,16 @@
 package com.jycz.qingyun.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jycz.qingyun.model.entity.Assignment;
 import com.jycz.qingyun.model.entity.AssignmentWeakPoints;
 import com.jycz.qingyun.model.entity.ObjectSubmit;
 import com.jycz.qingyun.model.entity.Question;
-import com.jycz.qingyun.model.entity.Recommendation;
 import com.jycz.qingyun.mapper.AssignmentMapper;
 import com.jycz.qingyun.mapper.AssignmentWeakPointsMapper;
 import com.jycz.qingyun.mapper.ObjectSubmitMapper;
 import com.jycz.qingyun.mapper.QuestionMapper;
-import com.jycz.qingyun.mapper.RecommendationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -31,14 +30,16 @@ public class AsyncAnalysisService {
     private final AssignmentWeakPointsMapper assignmentWeakPointsMapper;
     private final ObjectSubmitMapper objectSubmitMapper;
     private final QuestionMapper questionMapper;
-    private final RecommendationMapper recommendationMapper;
     private final NoticeService noticeService;
 
+    /**
+     * 异步生成薄弱知识点分析
+     */
     @Async
     public void generateWeakPointsAsync(Assignment assignment, Long studentId) {
         try {
-            log.info("开始异步分析薄弱知识点: studentId={}, assignmentId={}",
-                    studentId, assignment.getId());
+            log.info("开始异步分析薄弱知识点: studentId={}, assignmentId={}, 线程: {}",
+                    studentId, assignment.getId(), Thread.currentThread().getName());
 
             // 1. 获取提交记录
             List<ObjectSubmit> submits = objectSubmitMapper.selectByAssignmentAndUser(assignment.getId(), studentId);
@@ -46,6 +47,11 @@ public class AsyncAnalysisService {
                     new LambdaQueryWrapper<Question>()
                             .eq(Question::getAssignmentId, assignment.getId())
             );
+
+            if (submits.isEmpty() || allQuestions.isEmpty()) {
+                log.info("学生 {} 作业 {} 无提交记录或题目", studentId, assignment.getId());
+                return;
+            }
 
             // 2. 区分错题和正确题
             List<Question> wrongQuestions = new ArrayList<>();
@@ -78,36 +84,54 @@ public class AsyncAnalysisService {
                 return;
             }
 
-            // 4. 保存到 assignment_weak_points 表
-            String weakPointsJson = safeWriteValueAsString(weakPointMaps);
-            if (weakPointsJson == null) {
-                return;
+            // 4. ✅ 每个薄弱点单独插入一条记录
+            for (Map<String, Object> wp : weakPointMaps) {
+                String knowledgePoint = (String) wp.get("knowledgePoint");
+                String explanation = (String) wp.get("explanation");
+                Integer wrongCount = (Integer) wp.getOrDefault("wrongCount", 0);
+                @SuppressWarnings("unchecked")
+                List<String> wrongQuestionsList = (List<String>) wp.getOrDefault("wrongQuestions", new ArrayList<>());
+
+                // 检查是否已存在
+                LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(AssignmentWeakPoints::getAssignmentId, assignment.getId())
+                        .eq(AssignmentWeakPoints::getUserId, studentId)
+                        .eq(AssignmentWeakPoints::getKnowledgePoint, knowledgePoint);
+                AssignmentWeakPoints existing = assignmentWeakPointsMapper.selectOne(wrapper);
+
+                String wrongQuestionsJson = safeWriteValueAsString(wrongQuestionsList);
+                if (wrongQuestionsJson == null) {
+                    log.warn("序列化错题列表失败，跳过该知识点: {}", knowledgePoint);
+                    continue;
+                }
+
+                if (existing != null) {
+                    existing.setExplanation(explanation);
+                    existing.setWrongCount(wrongCount);
+                    existing.setWrongQuestions(wrongQuestionsJson);
+                    existing.setStatus(0);
+                    existing.setPracticeCount(0);
+                    assignmentWeakPointsMapper.updateById(existing);
+                    log.info("更新薄弱知识点: studentId={}, assignmentId={}, knowledgePoint={}",
+                            studentId, assignment.getId(), knowledgePoint);
+                } else {
+                    AssignmentWeakPoints awp = new AssignmentWeakPoints();
+                    awp.setAssignmentId(assignment.getId());
+                    awp.setUserId(studentId);
+                    awp.setKnowledgePoint(knowledgePoint);
+                    awp.setExplanation(explanation);
+                    awp.setWrongCount(wrongCount);
+                    awp.setWrongQuestions(wrongQuestionsJson);
+                    awp.setStatus(0);
+                    awp.setPracticeCount(0);
+                    assignmentWeakPointsMapper.insert(awp);
+                    log.info("新增薄弱知识点: studentId={}, assignmentId={}, knowledgePoint={}",
+                            studentId, assignment.getId(), knowledgePoint);
+                }
             }
 
-            LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(AssignmentWeakPoints::getAssignmentId, assignment.getId())
-                    .eq(AssignmentWeakPoints::getUserId, studentId);
-            AssignmentWeakPoints existing = assignmentWeakPointsMapper.selectOne(wrapper);
-
-            if (existing != null) {
-                existing.setWeakPoints(weakPointsJson);
-                existing.setStatus(0);
-                existing.setPracticeCount(0);
-                assignmentWeakPointsMapper.updateById(existing);
-                log.info("更新薄弱知识点: studentId={}, assignmentId={}", studentId, assignment.getId());
-            } else {
-                AssignmentWeakPoints awp = new AssignmentWeakPoints();
-                awp.setAssignmentId(assignment.getId());
-                awp.setUserId(studentId);
-                awp.setWeakPoints(weakPointsJson);
-                awp.setStatus(0);
-                awp.setPracticeCount(0);
-                assignmentWeakPointsMapper.insert(awp);
-                log.info("新增薄弱知识点: studentId={}, assignmentId={}", studentId, assignment.getId());
-            }
-
-            log.info("薄弱知识点分析完成: studentId={}, assignmentId={}",
-                    studentId, assignment.getId());
+            log.info("薄弱知识点分析完成: studentId={}, assignmentId={}, count={}",
+                    studentId, assignment.getId(), weakPointMaps.size());
 
             // 5. 发送通知
             noticeService.addNotice(
@@ -121,29 +145,6 @@ public class AsyncAnalysisService {
             log.error("异步生成薄弱知识点失败: studentId={}, assignmentId={}, error={}",
                     studentId, assignment.getId(), e.getMessage(), e);
         }
-    }
-
-
-
-    /**
-     * 降级方案：从错题中随机选几道作为推荐
-     */
-    private List<Map<String, Object>> generateFallbackRecommendations(List<Question> wrongQuestions, int count) {
-        List<Map<String, Object>> fallback = new ArrayList<>();
-        int size = Math.min(count, wrongQuestions.size());
-        Collections.shuffle(wrongQuestions);
-        for (int i = 0; i < size; i++) {
-            Question q = wrongQuestions.get(i);
-            Map<String, Object> item = new HashMap<>();
-            item.put("stem", q.getStem());
-            item.put("type", q.getType());
-            item.put("options", new ArrayList<>());
-            item.put("answer", q.getAnswer());
-            item.put("explanation", q.getExplanation() != null ? q.getExplanation() : "请复习相关知识点");
-            item.put("knowledgePoint", "需要巩固的知识点");
-            fallback.add(item);
-        }
-        return fallback;
     }
 
     /**
