@@ -489,15 +489,13 @@ CREATE TABLE `recommendation` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '推荐记录ID',
     `user_id` BIGINT NOT NULL COMMENT '学生ID',
     `assignment_id` BIGINT NOT NULL COMMENT '来源作业ID',
-    `questions` JSON NOT NULL COMMENT '推荐题目列表（JSON数组）',
-    `status` TINYINT DEFAULT 0 COMMENT '状态：0-待练习，1-已完成',
-    `parent_id` BIGINT DEFAULT NULL COMMENT '父推荐ID（关联上一次推荐）',
-    `is_completed` TINYINT DEFAULT 0 COMMENT '是否全部正确完成：0-进行中，1-已完成',
-    INDEX idx_user_id (`user_id`),
-    INDEX idx_assignment_id (`assignment_id`),
-    INDEX idx_parent_id (`parent_id`)
+    `weak_point_id` BIGINT NOT NULL COMMENT '关联薄弱知识点ID',
+    `question` JSON NOT NULL COMMENT '推荐题目（单个JSON对象）',
+    `is_correct` TINYINT DEFAULT 0 COMMENT '状态：0-未答，1-正确，2-错误',
+    INDEX idx_user_id (user_id),
+    INDEX idx_assignment_id (assignment_id),
+    INDEX idx_weak_point_id (weak_point_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='习题推荐记录表';
-
 -- =============================================
 -- 28. 学生作业薄弱知识点表
 -- =============================================
@@ -505,7 +503,9 @@ CREATE TABLE `assignment_weak_points` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
     `assignment_id` BIGINT NOT NULL COMMENT '作业ID',
     `user_id` BIGINT NOT NULL COMMENT '学生ID',
-    `weak_points` JSON NOT NULL COMMENT '薄弱知识点（JSON数组）',
+    `weak_points` JSON NOT NULL COMMENT '薄弱知识点列表（JSON数组）',
+    `status` TINYINT DEFAULT 0 COMMENT '状态：0-待练习，1-已完成',
+    `practice_count` INT DEFAULT 0 COMMENT '练习次数',
     UNIQUE KEY uk_assignment_user (assignment_id, user_id),
     INDEX idx_assignment_id (assignment_id),
     INDEX idx_user_id (user_id)
