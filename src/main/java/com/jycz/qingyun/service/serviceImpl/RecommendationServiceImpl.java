@@ -78,6 +78,13 @@ public class RecommendationServiceImpl implements RecommendationService {
             List<Map<String, Object>> questions;
             try {
                 questions = objectMapper.readValue(rec.getQuestions(), List.class);
+                for (int i = 0; i < questions.size(); i++) {
+                    Map<String, Object> q = questions.get(i);
+                    // 如果没有 sortOrder 或 sortOrder 为 null，手动设置
+                    if (!q.containsKey("sortOrder") || q.get("sortOrder") == null) {
+                        q.put("sortOrder", i + 1);
+                    }
+                }
             } catch (Exception e) {
                 log.error("解析推荐习题失败: {}", e.getMessage());
                 continue;
