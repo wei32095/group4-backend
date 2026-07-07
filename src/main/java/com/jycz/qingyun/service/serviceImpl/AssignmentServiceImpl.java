@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.net.URL;
 import java.time.LocalDateTime;
@@ -441,8 +443,13 @@ public class AssignmentServiceImpl implements AssignmentService {
             noticeService.sendSubmitNotice(course.getUserId(), studentName, assignment.getAssignmentTitle());
         }
 
-        // ✅ 异步生成薄弱知识点分析
-        asyncAnalysisService.generateWeakPointsAsync(assignment, studentId);
+        // ✅ 事务提交后异步生成薄弱知识点分析
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                asyncAnalysisService.generateWeakPointsAsync(assignment, studentId);
+            }
+        });
 
         // ✅ 立即返回（没有 weakPoints）
         return AssignmentSubmitVO.builder()
