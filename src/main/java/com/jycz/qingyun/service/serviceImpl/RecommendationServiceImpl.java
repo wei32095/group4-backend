@@ -159,9 +159,34 @@ public class RecommendationServiceImpl implements RecommendationService {
         } catch (Exception e) {
             throw new BusinessException(500, "解析题目失败");
         }
-        String correctAnswer = (String) question.get("answer");
+        Object rawAnswer = question.get("answer");
+        String correctAnswer = rawAnswer != null ? String.valueOf(rawAnswer).trim() : "";
+        String userAnswer = request.getAnswer() != null ? request.getAnswer().trim() : "";
 
-        boolean isCorrect = correctAnswer != null && correctAnswer.equals(request.getAnswer());
+        log.info("判题: recommendationId={}, 正确答案='{}'(type={}), 用户答案='{}'",
+                rec.getId(), correctAnswer, rawAnswer != null ? rawAnswer.getClass().getSimpleName() : "null", userAnswer);
+
+        // 判断答案：支持选项字母("A")和完整选项文本("A. xxx")两种格式
+        boolean isCorrect = false;
+        if (!correctAnswer.isEmpty()) {
+            // 1. 直接匹配选项字母
+            if (userAnswer.equals(correctAnswer)) {
+                isCorrect = true;
+            } else {
+                // 2. 匹配完整选项文本（如 "A. 3/4"）
+                @SuppressWarnings("unchecked")
+                List<String> options = (List<String>) question.get("options");
+                if (options != null) {
+                    for (String option : options) {
+                        if (option.equals(userAnswer) && option.length() > 0) {
+                            String optionLetter = option.substring(0, 1);
+                            isCorrect = correctAnswer.equals(optionLetter);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         rec.setIsCorrect(isCorrect ? 1 : 2);
         recommendationMapper.updateById(rec);
