@@ -11,15 +11,17 @@ public class StudentAnalysisVO {
 
     private OverviewVO overview;
     private List<CourseStatVO> courseStats;
-    private PeriodReportVO weekReport;    // ← 本周报告
-    private PeriodReportVO monthReport;   // ← 本月报告
+    private PeriodReportVO weekReport;
+    private PeriodReportVO monthReport;
 
     @Data
     @Builder
     public static class OverviewVO {
         private Integer activeCourseCount;
         private Integer completedCourseCount;
-        private Integer totalPoints;
+        // ❌ 删除 totalPoints
+        private Integer solvedWeakPointCount;   // ← 新增
+        private Integer pendingWeakPointCount;  // ← 新增
     }
 
     @Data

@@ -34,6 +34,7 @@ public class AnalysisServiceImpl implements AnalysisService {
     private final UserMapper userMapper;
     private final StudyRoomService studyRoomService;
     private final StudentAnalysisMapper studentAnalysisMapper;
+    private final AssignmentWeakPointsMapper assignmentWeakPointsMapper;
     @Override
     public StudentAnalysisVO getStudentAnalysis(Long userId, String periodType) {
         // 1. 顶部概览
@@ -71,14 +72,27 @@ public class AnalysisServiceImpl implements AnalysisService {
             completedCount = (int) courses.stream().filter(c -> "archived".equals(c.getStatus())).count();
         }
 
-        // 累计积分
-        Integer totalPoints = userMapper.getPoints(userId);
-        if (totalPoints == null) totalPoints = 0;
+        // 2. ✅ 统计薄弱知识点
+        int solvedCount = 0;
+        int pendingCount = 0;
+
+        LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AssignmentWeakPoints::getUserId, userId);
+        List<AssignmentWeakPoints> weakPointsList = assignmentWeakPointsMapper.selectList(wrapper);
+
+        for (AssignmentWeakPoints awp : weakPointsList) {
+            if (awp.getStatus() == 1) {
+                solvedCount++;
+            } else {
+                pendingCount++;
+            }
+        }
 
         return StudentAnalysisVO.OverviewVO.builder()
                 .activeCourseCount(activeCount)
                 .completedCourseCount(completedCount)
-                .totalPoints(totalPoints)
+                .solvedWeakPointCount(solvedCount)   // ← 新增
+                .pendingWeakPointCount(pendingCount) // ← 新增
                 .build();
     }
 
@@ -118,7 +132,6 @@ public class AnalysisServiceImpl implements AnalysisService {
 
     // ========== 2.1 课程学习时长 ==========
     private Long calculateCourseStudyDuration(Long userId, Long courseId) {
-        // 查询该课程下所有已结束的课堂
         List<Class> classes = classMapper.selectList(
                 new LambdaQueryWrapper<Class>()
                         .eq(Class::getCourseId, courseId)
@@ -129,18 +142,17 @@ public class AnalysisServiceImpl implements AnalysisService {
 
         List<Long> classIds = classes.stream().map(Class::getId).collect(Collectors.toList());
 
-        // 查询该学生的签到记录
         List<ClassCheck> checkins = classCheckMapper.selectList(
                 new LambdaQueryWrapper<ClassCheck>()
                         .in(ClassCheck::getClassId, classIds)
                         .eq(ClassCheck::getUserId, userId)
         );
 
-        // 计算签到时间到课堂结束时间的时长
         long totalSeconds = 0;
         for (ClassCheck checkin : checkins) {
             Class clazz = classMapper.selectById(checkin.getClassId());
-            if (clazz != null && clazz.getEndTime() != null) {
+            // ✅ 增加 null 判断
+            if (clazz != null && clazz.getEndTime() != null && checkin.getCheckinTime() != null) {
                 long seconds = ChronoUnit.SECONDS.between(checkin.getCheckinTime(), clazz.getEndTime());
                 if (seconds > 0) totalSeconds += seconds;
             }
@@ -315,7 +327,6 @@ public class AnalysisServiceImpl implements AnalysisService {
     }
 
     private Long calculateClassDurationInPeriod(Long userId, LocalDateTime start, LocalDateTime end) {
-        // 查询该学生在时间范围内的签到记录
         List<ClassCheck> checkins = classCheckMapper.selectList(
                 new LambdaQueryWrapper<ClassCheck>()
                         .eq(ClassCheck::getUserId, userId)
@@ -328,7 +339,8 @@ public class AnalysisServiceImpl implements AnalysisService {
         long totalSeconds = 0;
         for (ClassCheck checkin : checkins) {
             Class clazz = classMapper.selectById(checkin.getClassId());
-            if (clazz != null && clazz.getEndTime() != null) {
+            // ✅ 增加 null 判断
+            if (clazz != null && clazz.getEndTime() != null && checkin.getCheckinTime() != null) {
                 long seconds = ChronoUnit.SECONDS.between(checkin.getCheckinTime(), clazz.getEndTime());
                 if (seconds > 0) totalSeconds += seconds;
             }
