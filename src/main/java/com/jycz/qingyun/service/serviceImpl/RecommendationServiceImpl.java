@@ -1,18 +1,16 @@
 package com.jycz.qingyun.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jycz.qingyun.model.dto.RecommendationSubmitRequest;
-import com.jycz.qingyun.model.entity.Assignment;
-import com.jycz.qingyun.model.entity.Course;
+import com.jycz.qingyun.model.entity.AssignmentWeakPoints;
 import com.jycz.qingyun.model.entity.Recommendation;
-import com.jycz.qingyun.model.vo.RecommendationListVO;
+import com.jycz.qingyun.model.vo.RecommendationQuestionVO;
 import com.jycz.qingyun.model.vo.RecommendationSubmitVO;
-import com.jycz.qingyun.mapper.AssignmentMapper;
-import com.jycz.qingyun.mapper.CourseMapper;
+import com.jycz.qingyun.mapper.AssignmentWeakPointsMapper;
 import com.jycz.qingyun.mapper.RecommendationMapper;
 import com.jycz.qingyun.service.AIService;
-import com.jycz.qingyun.service.NoticeService;
 import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.service.RecommendationService;
 import com.jycz.qingyun.utils.BusinessException;
@@ -21,9 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -31,235 +27,172 @@ import java.util.stream.Collectors;
 public class RecommendationServiceImpl implements RecommendationService {
 
     private final RecommendationMapper recommendationMapper;
-    private final AssignmentMapper assignmentMapper;
-    private final CourseMapper courseMapper;
+    private final AssignmentWeakPointsMapper assignmentWeakPointsMapper;
     private final ObjectMapper objectMapper;
     private final AIService aiService;
     private final PointsRecordService pointsRecordService;
-    private final NoticeService noticeService;
+
+    /**
+     * 过滤题目中的冗余字段，按 type, stem, options, answer, explanation 顺序排列
+     */
+    private Map<String, Object> filterQuestion(Map<String, Object> question) {
+        Map<String, Object> filtered = new LinkedHashMap<>();
+        filtered.put("type", question.get("type"));
+        filtered.put("stem", question.get("stem"));
+        filtered.put("options", question.get("options"));
+        filtered.put("answer", question.get("answer"));
+        filtered.put("explanation", question.get("explanation"));
+        return filtered;
+    }
 
     @Override
-    public List<RecommendationListVO> getRecommendationList(Long userId) {
-        LambdaQueryWrapper<Recommendation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Recommendation::getUserId, userId)
-                .eq(Recommendation::getStatus, 0);
-
-
-        List<Recommendation> recommendations = recommendationMapper.selectList(wrapper);
-
-        if (recommendations.isEmpty()) {
-            return new ArrayList<>();
+    @Transactional
+    public RecommendationQuestionVO getRecommendationQuestion(Long weakPointId, Long userId) {
+        AssignmentWeakPoints awp = assignmentWeakPointsMapper.selectById(weakPointId);
+        if (awp == null) {
+            throw new BusinessException(404, "薄弱知识点不存在");
+        }
+        if (!awp.getUserId().equals(userId)) {
+            throw new BusinessException(403, "无权操作");
+        }
+        if (awp.getStatus() == 1) {
+            throw new BusinessException(400, "该薄弱点已完成");
         }
 
-        List<Long> assignmentIds = recommendations.stream()
-                .map(Recommendation::getAssignmentId)
-                .distinct()
-                .collect(Collectors.toList());
+        LambdaQueryWrapper<Recommendation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Recommendation::getWeakPointId, weakPointId)
+                .eq(Recommendation::getUserId, userId)
+                .eq(Recommendation::getIsCorrect, 0)
+                .last("LIMIT 1");
+        Recommendation existingRec = recommendationMapper.selectOne(wrapper);
 
-        Map<Long, Assignment> assignmentMap = assignmentMapper.selectBatchIds(assignmentIds).stream()
-                .collect(Collectors.toMap(Assignment::getId, a -> a));
-
-        List<Long> courseIds = assignmentMap.values().stream()
-                .map(Assignment::getCourseId)
-                .distinct()
-                .collect(Collectors.toList());
-
-        Map<Long, Course> courseMap = courseMapper.selectBatchIds(courseIds).stream()
-                .collect(Collectors.toMap(Course::getId, c -> c));
-
-        List<RecommendationListVO> result = new ArrayList<>();
-
-        for (Recommendation rec : recommendations) {
-            Assignment assignment = assignmentMap.get(rec.getAssignmentId());
-            if (assignment == null) continue;
-
-            Course course = courseMap.get(assignment.getCourseId());
-
-            List<Map<String, Object>> questions;
+        if (existingRec != null) {
+            Map<String, Object> question;
             try {
-                questions = objectMapper.readValue(rec.getQuestions(), List.class);
-                for (int i = 0; i < questions.size(); i++) {
-                    Map<String, Object> q = questions.get(i);
-                    // 如果没有 sortOrder 或 sortOrder 为 null，手动设置
-                    if (!q.containsKey("sortOrder") || q.get("sortOrder") == null) {
-                        q.put("sortOrder", i + 1);
-                    }
-                }
+                question = objectMapper.readValue(existingRec.getQuestion(), Map.class);
             } catch (Exception e) {
-                log.error("解析推荐习题失败: {}", e.getMessage());
-                continue;
+                throw new BusinessException(500, "解析题目失败");
+            }
+            return RecommendationQuestionVO.builder()
+                    .recommendationId(existingRec.getId())
+                    .weakPointId(weakPointId)
+                    .knowledgePoint((String) question.get("knowledgePoint"))
+                    .question(filterQuestion(question))
+                    .build();
+        }
+
+        return generateNewQuestion(awp, userId);
+    }
+
+    /**
+     * 生成新推荐习题（私有方法）
+     */
+    private RecommendationQuestionVO generateNewQuestion(AssignmentWeakPoints awp, Long userId) {
+        try {
+            List<Map<String, Object>> weakPoints = objectMapper.readValue(
+                    awp.getWeakPoints(),
+                    new TypeReference<List<Map<String, Object>>>() {}
+            );
+
+            if (weakPoints.isEmpty()) {
+                throw new BusinessException(500, "薄弱知识点为空");
             }
 
-            String status = rec.getStatus() == 0 ? "pending" : "completed";
-            Boolean isCompleted = rec.getIsCompleted() != null && rec.getIsCompleted() == 1;
+            Map<String, Object> wp = weakPoints.get(0);
+            String knowledgePoint = (String) wp.get("knowledgePoint");
+            List<String> wrongQuestions = (List<String>) wp.getOrDefault("wrongQuestions", new ArrayList<>());
 
-            result.add(RecommendationListVO.builder()
+            Map<String, Object> question = aiService.generateSingleQuestion(knowledgePoint, wrongQuestions);
+            if (question == null) {
+                throw new BusinessException(500, "生成推荐习题失败");
+            }
+
+            String questionJson;
+            try {
+                questionJson = objectMapper.writeValueAsString(question);
+            } catch (Exception e) {
+                log.error("序列化推荐习题失败: {}", e.getMessage());
+                throw new BusinessException(500, "序列化推荐习题失败");
+            }
+
+            Recommendation rec = new Recommendation();
+            rec.setUserId(userId);
+            rec.setAssignmentId(awp.getAssignmentId());
+            rec.setWeakPointId(awp.getId());
+            rec.setQuestion(questionJson);
+            rec.setIsCorrect(0);
+            recommendationMapper.insert(rec);
+
+            awp.setPracticeCount(awp.getPracticeCount() + 1);
+            assignmentWeakPointsMapper.updateById(awp);
+
+            return RecommendationQuestionVO.builder()
                     .recommendationId(rec.getId())
-                    .assignmentId(rec.getAssignmentId())
-                    .assignmentTitle(assignment.getAssignmentTitle())
-                    .courseId(assignment.getCourseId())
-                    .courseName(course != null ? course.getCourseTitle() : "未知课程")
-                    .status(status)
-                    .isCompleted(isCompleted)
-                    .questions(questions)
-                    .build());
-        }
+                    .weakPointId(awp.getId())
+                    .knowledgePoint(knowledgePoint)
+                    .question(filterQuestion(question))
+                    .build();
 
-        return result;
+        } catch (Exception e) {
+            log.error("生成推荐习题失败: {}", e.getMessage());
+            throw new BusinessException(500, "生成推荐习题失败");
+        }
     }
 
     @Override
     @Transactional
     public RecommendationSubmitVO submitRecommendation(RecommendationSubmitRequest request, Long userId) {
-        // 1. 查询推荐记录
         Recommendation rec = recommendationMapper.selectById(request.getRecommendationId());
         if (rec == null) {
             throw new BusinessException(404, "推荐记录不存在");
         }
-
         if (!rec.getUserId().equals(userId)) {
             throw new BusinessException(403, "无权操作");
         }
-
-        if (rec.getStatus() == 1) {
-            throw new BusinessException(400, "该推荐习题已完成");
+        if (rec.getIsCorrect() != 0) {
+            throw new BusinessException(400, "该题目已作答");
         }
 
-        // 2. 解析题目
-        List<Map<String, Object>> questions;
+        Map<String, Object> question;
         try {
-            questions = objectMapper.readValue(rec.getQuestions(), List.class);
+            question = objectMapper.readValue(rec.getQuestion(), Map.class);
         } catch (Exception e) {
-            throw new BusinessException(500, "题目解析失败");
+            throw new BusinessException(500, "解析题目失败");
         }
+        String correctAnswer = (String) question.get("answer");
 
-        // 3. 创建序号 -> 正确答案映射
-        Map<Integer, String> answerMap = new HashMap<>();
-        for (Map<String, Object> q : questions) {
-            Integer sortOrder = (Integer) q.get("sortOrder");
-            String answer = (String) q.get("answer");
-            if (sortOrder != null && answer != null) {
-                answerMap.put(sortOrder, answer);
-            }
-        }
+        boolean isCorrect = correctAnswer != null && correctAnswer.equals(request.getAnswer());
 
-        // 4. 批改
-        int correctCount = 0;
-        int totalCount = request.getAnswers().size();
-        int totalScore = 0;
-        int maxScore = 0;
-        List<Map<String, Object>> wrongQuestions = new ArrayList<>();
+        rec.setIsCorrect(isCorrect ? 1 : 2);
+        recommendationMapper.updateById(rec);
 
-        for (RecommendationSubmitRequest.AnswerRequest answerReq : request.getAnswers()) {
-            String correctAnswer = answerMap.get(answerReq.getSortOrder());
-            if (correctAnswer != null) {
-                maxScore += 10;
-                if (correctAnswer.equals(answerReq.getAnswer())) {
-                    correctCount++;
-                    totalScore += 10;
-                } else {
-                    // 记录错题
-                    for (Map<String, Object> q : questions) {
-                        Integer sortOrder = (Integer) q.get("sortOrder");
-                        if (sortOrder != null && sortOrder.equals(answerReq.getSortOrder())) {
-                            wrongQuestions.add(q);
-                            break;
-                        }
-                    }
-                }
-            } else {
-                // ✅ 找不到对应题目，把当前题目加入错题列表
-                log.warn("未找到题目序号 {} 的正确答案", answerReq.getSortOrder());
-                for (Map<String, Object> q : questions) {
-                    Integer sortOrder = (Integer) q.get("sortOrder");
-                    if (sortOrder != null && sortOrder.equals(answerReq.getSortOrder())) {
-                        wrongQuestions.add(q);
-                        break;
-                    }
-                }
-            }
-        }
+        AssignmentWeakPoints awp = assignmentWeakPointsMapper.selectById(rec.getWeakPointId());
 
-        boolean allCorrect = correctCount == totalCount;
-        // 5. 处理结果
-        List<Map<String, Object>> newRecommendations = new ArrayList<>();
-        Integer pointsEarned = 0;
-
-        if (allCorrect) {
-            // ✅ 全部正确 → +5分
+        if (isCorrect) {
+            awp.setStatus(1);
+            assignmentWeakPointsMapper.updateById(awp);
             pointsRecordService.handleRecommendationPoints(userId);
-            pointsEarned = 5;
 
-            rec.setIsCompleted(1);
-            rec.setStatus(1);
-            recommendationMapper.updateById(rec);
-
-            log.info("推荐习题全部正确: userId={}, recId={}, +5分", userId, rec.getId());
-
+            return RecommendationSubmitVO.builder()
+                    .recommendationId(rec.getId())
+                    .isCorrect(true)
+                    .pointsEarned(5)
+                    .message("✅ 回答正确！+5分，该薄弱点已消除")
+                    .newQuestion(null)
+                    .build();
         } else {
-            // ❌ 有错误 → 针对错题生成新推荐
-            if (!wrongQuestions.isEmpty()) {
-                newRecommendations = aiService.generateRecommendationFromWrongQuestions(
-                        wrongQuestions, Math.min(3, wrongQuestions.size() * 2)
-                );
+            awp.setPracticeCount(awp.getPracticeCount() + 1);
+            assignmentWeakPointsMapper.updateById(awp);
 
-                if (!newRecommendations.isEmpty()) {
-                    // 序列化新推荐
-                    String newQuestionsJson = safeWriteValueAsString(newRecommendations);
-                    if (newQuestionsJson == null) {
-                        throw new BusinessException(500, "序列化推荐习题失败");
-                    }
+            RecommendationQuestionVO newQuestion = generateNewQuestion(awp, userId);
 
-                    // 保存新推荐
-                    Recommendation newRec = new Recommendation();
-                    newRec.setUserId(userId);
-                    newRec.setAssignmentId(rec.getAssignmentId());
-                    newRec.setQuestions(newQuestionsJson);
-                    newRec.setStatus(0);
-                    newRec.setParentId(rec.getId());
-                    newRec.setIsCompleted(0);
-                    recommendationMapper.insert(newRec);
-
-                    noticeService.addNotice(
-                            userId,
-                            "📚 新的推荐习题已生成",
-                            "你还有 " + wrongQuestions.size() + " 道题目需要巩固，继续练习吧！",
-                            13
-                    );
-
-                    log.info("基于错题生成新推荐: userId={}, parentId={}", userId, rec.getId());
-                }
-            }
-
-            // 当前推荐标记为已完成（但不是全部正确）
-            rec.setStatus(1);
-            rec.setIsCompleted(0);
-            recommendationMapper.updateById(rec);
-        }
-
-        return RecommendationSubmitVO.builder()
-                .recommendationId(request.getRecommendationId())
-                .status("COMPLETED")
-                .submitTime(LocalDateTime.now())
-                .score(totalScore)
-                .maxScore(maxScore)
-                .correctCount(correctCount)
-                .totalCount(totalCount)
-                .allCorrect(allCorrect)
-                .pointsEarned(pointsEarned)
-                .newRecommendations(newRecommendations)
-                .build();
-    }
-
-    /**
-     * 安全序列化 JSON
-     */
-    private String safeWriteValueAsString(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (Exception e) {
-            log.error("JSON 序列化失败: {}", e.getMessage());
-            return null;
+            return RecommendationSubmitVO.builder()
+                    .recommendationId(rec.getId())
+                    .isCorrect(false)
+                    .pointsEarned(0)
+                    .message("❌ 回答错误，再练一题！")
+                    .newQuestion(newQuestion.getQuestion())
+                    .build();
         }
     }
 }

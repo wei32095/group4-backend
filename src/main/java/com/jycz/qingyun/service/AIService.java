@@ -389,4 +389,70 @@ public class AIService {
 
         return sb.toString();
     }
+
+    /**
+     * 生成单道推荐习题
+     */
+    public Map<String, Object> generateSingleQuestion(String knowledgePoint, List<String> wrongQuestions) {
+        try {
+            String prompt = buildSingleQuestionPrompt(knowledgePoint, wrongQuestions);
+            String response = callAI(prompt);
+            List<Map<String, Object>> list = parseJsonResponse(response);
+            if (list != null && !list.isEmpty()) {
+                Map<String, Object> question = list.get(0);
+                if (!question.containsKey("sortOrder")) {
+                    question.put("sortOrder", 1);
+                }
+                return question;
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("生成单道推荐习题失败: {}", e.getMessage());
+            return generateFallbackSingleQuestion(knowledgePoint);
+        }
+    }
+
+    private String buildSingleQuestionPrompt(String knowledgePoint, List<String> wrongQuestions) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("你是一位资深学科教师。请根据以下知识点生成一道练习题。\n\n");
+        sb.append("【知识点】").append(knowledgePoint).append("\n");
+
+        if (wrongQuestions != null && !wrongQuestions.isEmpty()) {
+            sb.append("\n【参考错题】\n");
+            for (String q : wrongQuestions) {
+                sb.append("- ").append(q).append("\n");
+            }
+        }
+
+        sb.append("\n【要求】\n");
+        sb.append("1. 生成 1 道练习题\n");
+        sb.append("2. 题型可以是：单选、填空\n");
+        sb.append("3. 要有正确答案和解析\n");
+        sb.append("4. 包含 sortOrder 字段，值为 1\n");
+        sb.append("5. 返回 JSON 数组格式：\n");
+        sb.append("   [{\n");
+        sb.append("     \"stem\": \"题干\",\n");
+        sb.append("     \"type\": 1,\n");
+        sb.append("     \"options\": [\"A.xxx\", \"B.xxx\"],\n");
+        sb.append("     \"answer\": \"答案\",\n");
+        sb.append("     \"explanation\": \"解析\",\n");
+        sb.append("     \"knowledgePoint\": \"知识点名称\",\n");
+        sb.append("     \"sortOrder\": 1\n");
+        sb.append("   }]\n");
+        sb.append("请只返回 JSON 数组。");
+
+        return sb.toString();
+    }
+
+    private Map<String, Object> generateFallbackSingleQuestion(String knowledgePoint) {
+        Map<String, Object> fallback = new HashMap<>();
+        fallback.put("stem", "请复习知识点：【" + knowledgePoint + "】，然后重新练习。");
+        fallback.put("type", 1);
+        fallback.put("options", Arrays.asList("A. 正确", "B. 错误"));
+        fallback.put("answer", "A");
+        fallback.put("explanation", "请认真学习该知识点。");
+        fallback.put("knowledgePoint", knowledgePoint);
+        fallback.put("sortOrder", 1);
+        return fallback;
+    }
 }

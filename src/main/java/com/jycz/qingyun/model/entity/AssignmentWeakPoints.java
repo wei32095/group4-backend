@@ -3,7 +3,6 @@ package com.jycz.qingyun.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 
 @Data
 @TableName("assignment_weak_points")
@@ -16,5 +15,11 @@ public class AssignmentWeakPoints {
 
     private Long userId;
 
-    private String weakPoints;  // JSON
+    private String weakPoints;
+
+    private Integer status;        // 0-待练习，1-已完成
+
+    private Integer practiceCount; // 练习次数
+
+
 }

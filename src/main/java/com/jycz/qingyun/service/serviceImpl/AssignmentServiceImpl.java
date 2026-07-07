@@ -438,9 +438,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         // ✅ 异步生成薄弱知识点分析
         asyncAnalysisService.generateWeakPointsAsync(assignment, studentId);
 
-        // ✅ 异步生成智能推荐
-        asyncAnalysisService.generateRecommendationAsync(assignment, studentId);
-
         // ✅ 立即返回（没有 weakPoints）
         return AssignmentSubmitVO.builder()
                 .assignmentId(request.getAssignmentId())

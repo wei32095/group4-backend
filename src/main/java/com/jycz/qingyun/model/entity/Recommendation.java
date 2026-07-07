@@ -3,7 +3,6 @@ package com.jycz.qingyun.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 
 @Data
 @TableName("recommendation")
@@ -16,12 +15,10 @@ public class Recommendation {
 
     private Long assignmentId;
 
-    private String questions;
+    private Long weakPointId;     // 关联薄弱知识点ID
 
-    private Integer status;      // 0-待练习，1-已完成
+    private String question;      // 单个题目（JSON对象）
 
-    private Long parentId;       // 新增：父推荐ID
-
-    private Integer isCompleted; // 新增：0-进行中，1-全部正确完成
+    private Integer isCorrect;    // 0-未答，1-正确，2-错误
 
 }

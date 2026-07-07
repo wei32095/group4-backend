@@ -34,14 +34,11 @@ public class AsyncAnalysisService {
     private final RecommendationMapper recommendationMapper;
     private final NoticeService noticeService;
 
-    /**
-     * 异步生成薄弱知识点分析（按学生存储）
-     */
     @Async
     public void generateWeakPointsAsync(Assignment assignment, Long studentId) {
         try {
-            log.info("开始异步分析薄弱知识点: studentId={}, assignmentId={}, 线程: {}",
-                    studentId, assignment.getId(), Thread.currentThread().getName());
+            log.info("开始异步分析薄弱知识点: studentId={}, assignmentId={}",
+                    studentId, assignment.getId());
 
             // 1. 获取提交记录
             List<ObjectSubmit> submits = objectSubmitMapper.selectByAssignmentAndUser(assignment.getId(), studentId);
@@ -81,7 +78,7 @@ public class AsyncAnalysisService {
                 return;
             }
 
-            // 4. ✅ 保存到 assignment_weak_points 表（按学生）
+            // 4. 保存到 assignment_weak_points 表
             String weakPointsJson = safeWriteValueAsString(weakPointMaps);
             if (weakPointsJson == null) {
                 return;
@@ -94,6 +91,8 @@ public class AsyncAnalysisService {
 
             if (existing != null) {
                 existing.setWeakPoints(weakPointsJson);
+                existing.setStatus(0);
+                existing.setPracticeCount(0);
                 assignmentWeakPointsMapper.updateById(existing);
                 log.info("更新薄弱知识点: studentId={}, assignmentId={}", studentId, assignment.getId());
             } else {
@@ -101,14 +100,16 @@ public class AsyncAnalysisService {
                 awp.setAssignmentId(assignment.getId());
                 awp.setUserId(studentId);
                 awp.setWeakPoints(weakPointsJson);
+                awp.setStatus(0);
+                awp.setPracticeCount(0);
                 assignmentWeakPointsMapper.insert(awp);
                 log.info("新增薄弱知识点: studentId={}, assignmentId={}", studentId, assignment.getId());
             }
 
-            log.info("薄弱知识点分析完成: studentId={}, assignmentId={}, count={}",
-                    studentId, assignment.getId(), weakPointMaps.size());
+            log.info("薄弱知识点分析完成: studentId={}, assignmentId={}",
+                    studentId, assignment.getId());
 
-            // 5. 发送通知，告知学生分析已完成
+            // 5. 发送通知
             noticeService.addNotice(
                     studentId,
                     "📊 薄弱知识点分析完成",
@@ -122,93 +123,7 @@ public class AsyncAnalysisService {
         }
     }
 
-    /**
-     * 异步生成智能推荐习题（基于客观题错题）
-     */
-    @Async
-    public void generateRecommendationAsync(Assignment assignment, Long studentId) {
-        try {
-            log.info("开始异步生成推荐习题: studentId={}, assignmentId={}, 线程: {}",
-                    studentId, assignment.getId(), Thread.currentThread().getName());
 
-            List<ObjectSubmit> submits = objectSubmitMapper.selectByAssignmentAndUser(
-                    assignment.getId(), studentId);
-
-            if (submits.isEmpty()) {
-                log.info("学生 {} 作业 {} 无客观题提交记录", studentId, assignment.getId());
-                return;
-            }
-
-            List<Question> allQuestions = questionMapper.selectList(
-                    new LambdaQueryWrapper<Question>()
-                            .eq(Question::getAssignmentId, assignment.getId())
-            );
-
-            if (allQuestions.isEmpty()) {
-                log.info("作业 {} 没有题目", assignment.getId());
-                return;
-            }
-
-            List<Long> wrongQuestionIds = new ArrayList<>();
-            for (ObjectSubmit submit : submits) {
-                Question q = questionMapper.selectById(submit.getQuestionId());
-                if (q != null && q.getType() != 5) {
-                    if (q.getAnswer() != null && !q.getAnswer().equals(submit.getAnswerWord())) {
-                        wrongQuestionIds.add(q.getId());
-                    }
-                }
-            }
-
-            if (wrongQuestionIds.isEmpty()) {
-                log.info("学生 {} 作业 {} 全部正确，无需推荐", studentId, assignment.getId());
-                return;
-            }
-
-            List<Question> wrongQuestions = questionMapper.selectBatchIds(wrongQuestionIds);
-            log.info("学生 {} 作业 {} 有 {} 道错题", studentId, assignment.getId(), wrongQuestions.size());
-
-            List<Map<String, Object>> recommendations = aiService.generateExerciseRecommendation(
-                    wrongQuestions, allQuestions, 3
-            );
-
-            if (recommendations == null || recommendations.isEmpty()) {
-                log.warn("AI 推荐习题生成失败或返回为空，使用降级方案");
-                recommendations = generateFallbackRecommendations(wrongQuestions, 3);
-            }
-
-            if (recommendations.isEmpty()) {
-                log.warn("降级方案也未能生成推荐习题");
-                return;
-            }
-
-            // ✅ 保存推荐记录
-            String questionsJson = safeWriteValueAsString(recommendations);
-            if (questionsJson == null) {
-                return;
-            }
-
-            Recommendation rec = new Recommendation();
-            rec.setUserId(studentId);
-            rec.setAssignmentId(assignment.getId());
-            rec.setQuestions(questionsJson);
-            rec.setStatus(0);
-            recommendationMapper.insert(rec);
-
-            log.info("推荐习题生成成功: studentId={}, assignmentId={}, count={}",
-                    studentId, assignment.getId(), recommendations.size());
-
-            noticeService.addNotice(
-                    studentId,
-                    "📚 智能推荐习题",
-                    "根据你的错题情况，系统为你推荐了 " + recommendations.size() + " 道针对性练习题，快去练习吧！",
-                    13
-            );
-
-        } catch (Exception e) {
-            log.error("生成推荐习题失败: studentId={}, assignmentId={}, error={}",
-                    studentId, assignment.getId(), e.getMessage(), e);
-        }
-    }
 
     /**
      * 降级方案：从错题中随机选几道作为推荐

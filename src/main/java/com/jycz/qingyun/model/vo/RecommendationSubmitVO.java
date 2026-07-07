@@ -3,8 +3,6 @@ package com.jycz.qingyun.model.vo;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 @Data
@@ -12,13 +10,8 @@ import java.util.Map;
 public class RecommendationSubmitVO {
 
     private Long recommendationId;
-    private String status;
-    private LocalDateTime submitTime;
-    private Integer score;
-    private Integer maxScore;
-    private Integer correctCount;
-    private Integer totalCount;
-    private Boolean allCorrect;
+    private Boolean isCorrect;
     private Integer pointsEarned;
-    private List<Map<String, Object>> newRecommendations;
+    private String message;
+    private Map<String, Object> newQuestion;
 }
