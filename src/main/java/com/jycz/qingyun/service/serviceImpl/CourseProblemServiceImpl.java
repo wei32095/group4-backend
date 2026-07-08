@@ -7,6 +7,7 @@ import com.jycz.qingyun.model.entity.*;
 import com.jycz.qingyun.model.vo.CourseProblemVO;
 import com.jycz.qingyun.model.vo.ProblemDetailVO;
 import com.jycz.qingyun.mapper.*;
+import com.jycz.qingyun.service.AIReplyService;
 import com.jycz.qingyun.service.AIService;
 import com.jycz.qingyun.service.CourseProblemService;
 import com.jycz.qingyun.service.NoticeService;
@@ -14,7 +15,6 @@ import com.jycz.qingyun.service.PointsRecordService;
 import com.jycz.qingyun.utils.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +35,9 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     private final NoticeService noticeService;
     private final PointsRecordService pointsRecordService;
     private final AIService aiService;
+
+    // ✅ 注入独立的 AI 回复服务
+    private final AIReplyService aiReplyService;
 
     // ========== 1. 发布问题 ==========
     @Override
@@ -85,9 +88,10 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             );
         }
 
-        // 7. 🆕 异步调用 AI 生成回复
-        generateAIRepliesAsync(problem.getId(), request.getTitle(), request.getContent());
+        // 7. ✅ 异步调用 AI 生成回复（通过独立服务）
+        aiReplyService.generateAIRepliesAsync(problem.getId(), request.getTitle(), request.getContent());
 
+        // 8. ✅ 立即返回（不等待 AI 回复）
         return CourseProblemVO.builder()
                 .problemId(problem.getId())
                 .courseId(problem.getCourseId())
@@ -102,71 +106,16 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                 .build();
     }
 
-    // ========== 🆕 异步 AI 回复 ==========
-    @Async
-    public void generateAIRepliesAsync(Long problemId, String title, String content) {
-        try {
-            // 1. 等待 2 秒（给学生发布问题的体验）
-            Thread.sleep(2000);
-
-            // 2. 查询已有回复（避免 AI 重复已有内容）
-            List<CourseProblemReply> existingReplies = courseProblemReplyMapper.selectByProblemId(problemId);
-            List<Map<String, String>> existingReplyList = new ArrayList<>();
-            for (CourseProblemReply reply : existingReplies) {
-                User user = userMapper.selectById(reply.getUserId());
-                Map<String, String> map = new HashMap<>();
-                map.put("userName", user != null ? user.getName() : "未知用户");
-                map.put("content", reply.getContent());
-                existingReplyList.add(map);
-            }
-
-            // 3. 调用 AI 生成回复
-            String aiContent = aiService.generateReply(title, content, existingReplyList);
-
-            // 4. 保存 AI 回复到数据库
-            CourseProblemReply aiReply = new CourseProblemReply();
-            aiReply.setProblemId(problemId);
-            aiReply.setUserId(aiService.getAiUserId());
-            aiReply.setContent(aiContent);
-            aiReply.setIsAi(1);
-            aiReply.setCreatedAt(LocalDateTime.now());
-            courseProblemReplyMapper.insert(aiReply);
-
-            // 5. 更新问题回复数
-            CourseProblem problem = courseProblemMapper.selectById(problemId);
-            problem.setReplyCount(problem.getReplyCount() + 1);
-            courseProblemMapper.updateById(problem);
-
-            // 6. 发送通知给问题发布者（AI 已回复）
-            User author = userMapper.selectById(problem.getUserId());
-            if (author != null) {
-                noticeService.addNotice(
-                        problem.getUserId(),
-                        "🤖 AI助教已回复",
-                        "你的问题「" + title + "」已被 AI 助教回复，快去查看吧！",
-                        12
-                );
-            }
-
-            log.info("AI 回复成功: problemId={}", problemId);
-
-        } catch (Exception e) {
-            log.error("AI 回复失败: problemId={}, error={}", problemId, e.getMessage());
-        }
-    }
-
     // ========== 2. 问题列表 ==========
     @Override
     public List<CourseProblemVO> getProblemList(Long courseId, Long userId, Integer pageNum, Integer pageSize) {
         int offset = (pageNum - 1) * pageSize;
 
-        // 1. 校验课程是否存在
         Course course = courseMapper.selectById(courseId);
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
         }
 
-        // 2. ✅ 校验权限：教师必须是该课程创建者，学生必须已加入
         boolean isTeacher = course.getUserId().equals(userId);
         if (!isTeacher) {
             LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
@@ -177,7 +126,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             }
         }
 
-        // 3. 查询问题列表
         LambdaQueryWrapper<CourseProblem> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CourseProblem::getCourseId, courseId)
                 .orderByDesc(CourseProblem::getCreatedAt)
@@ -188,7 +136,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             return new ArrayList<>();
         }
 
-        // 4. 批量查询用户信息
         List<Long> userIds = problems.stream()
                 .map(CourseProblem::getUserId)
                 .distinct()
@@ -202,7 +149,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             userMap = new HashMap<>();
         }
 
-        // 5. 组装结果
         return problems.stream().map(problem -> {
             User user = userMap.get(problem.getUserId());
             return CourseProblemVO.builder()
@@ -223,19 +169,16 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     // ========== 3. 问题详情 ==========
     @Override
     public ProblemDetailVO getProblemDetail(Long problemId, Long userId) {
-        // 1. 查询问题
         CourseProblem problem = courseProblemMapper.selectById(problemId);
         if (problem == null) {
             throw new BusinessException(404, "问题不存在");
         }
 
-        // 2. 校验课程
         Course course = courseMapper.selectById(problem.getCourseId());
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
         }
 
-        // 3. ✅ 校验权限：教师必须是该课程创建者，学生必须已加入
         boolean isTeacher = course.getUserId().equals(userId);
         if (!isTeacher) {
             LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
@@ -246,13 +189,9 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             }
         }
 
-        // 4. 获取提问者信息
         User asker = userMapper.selectById(problem.getUserId());
-
-        // 5. 查询所有回复
         List<CourseProblemReply> replies = courseProblemReplyMapper.selectByProblemId(problemId);
 
-        // 6. 批量查询回复者信息
         List<Long> replyUserIds = replies.stream()
                 .map(CourseProblemReply::getUserId)
                 .distinct()
@@ -266,17 +205,14 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             userMap = new HashMap<>();
         }
 
-        // 7. 获取课程教师ID（用于判断是否是教师回复）
         Long teacherId = course != null ? course.getUserId() : null;
 
-// 8. 组装回复列表（增加 AI 标识）
         List<ProblemDetailVO.ReplyVO> replyVOs = new ArrayList<>();
         for (CourseProblemReply reply : replies) {
             User user = userMap.get(reply.getUserId());
             boolean isTeacherReply = user != null && user.getId().equals(teacherId);
             boolean isAi = reply.getIsAi() != null && reply.getIsAi() == 1;
 
-            // AI 回复使用固定名称和头像
             String userName = isAi ? "AI助教" : (user != null ? user.getName() : "未知用户");
             String userAvatar = isAi ? "https://oss.example.com/ai_avatar.png" : (user != null ? user.getAvatar() : null);
             Integer userRole = isAi ? 4 : (user != null ? user.getRole() : null);
@@ -294,7 +230,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                     .build());
         }
 
-        // 9. 返回结果
         return ProblemDetailVO.builder()
                 .problemId(problem.getId())
                 .courseId(problem.getCourseId())
@@ -313,19 +248,16 @@ public class CourseProblemServiceImpl implements CourseProblemService {
     @Override
     @Transactional
     public CourseProblemVO replyProblem(ProblemReplyRequest request, Long userId) {
-        // 1. 查询问题
         CourseProblem problem = courseProblemMapper.selectById(request.getProblemId());
         if (problem == null) {
             throw new BusinessException(404, "问题不存在");
         }
 
-        // 2. 校验课程
         Course course = courseMapper.selectById(problem.getCourseId());
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
         }
 
-        // 3. 校验用户是否已加入该课程
         boolean isTeacher = course.getUserId().equals(userId);
         if (!isTeacher) {
             LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
@@ -336,25 +268,21 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             }
         }
 
-        // 4. 创建回复
         CourseProblemReply reply = new CourseProblemReply();
         reply.setProblemId(request.getProblemId());
         reply.setUserId(userId);
         reply.setContent(request.getContent());
-        reply.setIsAi(0);  // 人工回复
+        reply.setIsAi(0);
         courseProblemReplyMapper.insert(reply);
 
-        // 5. 更新问题回复数
         problem.setReplyCount(problem.getReplyCount() + 1);
         courseProblemMapper.updateById(problem);
 
         log.info("回复成功: replyId={}, problemId={}, userId={}",
                 reply.getId(), request.getProblemId(), userId);
 
-        // 6. 获取回复者信息
         User replier = userMapper.selectById(userId);
 
-        // 7. 发送问题被回复通知给问题发布者（自己回复自己不通知）
         if (!problem.getUserId().equals(userId) && replier != null) {
             noticeService.sendProblemRepliedNotice(
                     problem.getUserId(),
@@ -363,13 +291,11 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             );
         }
 
-        // 8. 教师回复问题加分
         if (course != null && course.getUserId().equals(userId)) {
             pointsRecordService.handleProblemRepliedPoints(problem.getUserId());
             log.info("教师回复问题，给问题发布者加分: problemId={}, authorId={}", problem.getId(), problem.getUserId());
         }
 
-        // 9. 获取问题发布者信息
         User author = userMapper.selectById(problem.getUserId());
 
         return CourseProblemVO.builder()
@@ -386,7 +312,7 @@ public class CourseProblemServiceImpl implements CourseProblemService {
                 .build();
     }
 
-    // ========== 5. 删除问题（连带所有回复） ==========
+    // ========== 5. 删除问题 ==========
     @Override
     @Transactional
     public void deleteProblem(Long problemId, Long userId) {
@@ -399,12 +325,10 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             throw new BusinessException(403, "只能删除自己的问题");
         }
 
-        // 删除该问题下的所有回复
         LambdaQueryWrapper<CourseProblemReply> replyWrapper = new LambdaQueryWrapper<>();
         replyWrapper.eq(CourseProblemReply::getProblemId, problemId);
         courseProblemReplyMapper.delete(replyWrapper);
 
-        // 删除问题本身
         courseProblemMapper.deleteById(problemId);
 
         log.info("问题已删除: problemId={}, userId={}", problemId, userId);
@@ -419,7 +343,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
             throw new BusinessException(404, "回复不存在");
         }
 
-        // AI 回复不允许删除
         if (reply.getIsAi() != null && reply.getIsAi() == 1) {
             throw new BusinessException(403, "AI 回复无法删除");
         }
@@ -430,7 +353,6 @@ public class CourseProblemServiceImpl implements CourseProblemService {
 
         courseProblemReplyMapper.deleteById(replyId);
 
-        // 更新问题回复数减 1
         CourseProblem problem = courseProblemMapper.selectById(reply.getProblemId());
         if (problem != null && problem.getReplyCount() > 0) {
             problem.setReplyCount(problem.getReplyCount() - 1);

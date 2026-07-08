@@ -1,6 +1,5 @@
 package com.jycz.qingyun.service.serviceImpl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jycz.qingyun.service.AIService;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +36,10 @@ public class AIServiceImpl implements AIService {
             log.info("AI 生成回复: title={}", title);
             String prompt = buildReplyPrompt(title, content, existingReplies);
             String result = callDeepSeek(prompt, 0.7);
+            // 清理 AI 回复中的 * 和 \n
+            String cleanedResult = cleanReplyContent(result);
             log.info("AI 回复生成成功");
-            return result;
+            return cleanedResult;
         } catch (Exception e) {
             log.error("AI 生成回复失败: {}", e.getMessage(), e);
             return "抱歉，AI 助教暂时无法生成回复，请稍后再试或等待老师回复。";
@@ -76,6 +77,37 @@ public class AIServiceImpl implements AIService {
             log.error("AI 分析薄弱知识点失败: {}", e.getMessage(), e);
             throw new RuntimeException("AI 分析薄弱知识点失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 清理 AI 回复内容：去除 * 和多余的 \n
+     */
+    private String cleanReplyContent(String content) {
+        if (content == null || content.isEmpty()) {
+            return content;
+        }
+
+        String cleaned = content;
+
+        // 1. 去除加粗 **text**
+        cleaned = cleaned.replaceAll("\\*\\*([^*]+)\\*\\*", "$1");
+
+        // 2. 去除斜体 *text*（保留数字间的乘号，如 2*3）
+        cleaned = cleaned.replaceAll("(?<![0-9])\\*([^*]+)\\*(?![0-9])", "$1");
+
+        // 3. 去除单独的 * 号（但保留数字间的乘号）
+        cleaned = cleaned.replaceAll("(?<![0-9])\\*(?![0-9])", "");
+
+        // 4. 将多个换行合并为两个
+        cleaned = cleaned.replaceAll("\\n{3,}", "\n\n");
+
+        // 5. 将多个空格合并为一个
+        cleaned = cleaned.replaceAll(" {2,}", " ");
+
+        // 6. 去除首尾空白
+        cleaned = cleaned.trim();
+
+        return cleaned;
     }
 
     private String callDeepSeek(String prompt, double temperature) {
@@ -132,6 +164,7 @@ public class AIServiceImpl implements AIService {
         sb.append("2. 如果问题涉及具体知识点，请详细解释\n");
         sb.append("3. 回复长度控制在 100-300 字\n");
         sb.append("4. 语气要友好、鼓励\n");
+        sb.append("5. 回复中不要使用 * 号（星号），不要使用 Markdown 格式\n");
 
         return sb.toString();
     }
