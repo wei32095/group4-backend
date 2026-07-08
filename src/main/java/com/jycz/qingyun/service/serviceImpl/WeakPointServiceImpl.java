@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,61 +33,45 @@ public class WeakPointServiceImpl implements WeakPointService {
 
     @Override
     public List<WeakPointVO> getWeakPointsList(Long userId, Long courseId, Long assignmentId) {
-        // 1. 查询该学生的所有薄弱点
+        // 1. 查询该学生的薄弱点（下推 assignmentId 过滤到 SQL）
         LambdaQueryWrapper<AssignmentWeakPoints> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AssignmentWeakPoints::getUserId, userId)
                 .eq(AssignmentWeakPoints::getStatus, 0);
+        if (assignmentId != null) {
+            wrapper.eq(AssignmentWeakPoints::getAssignmentId, assignmentId);
+        }
 
         List<AssignmentWeakPoints> list = assignmentWeakPointsMapper.selectList(wrapper);
-
         if (list.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 2. 筛选：如果有 assignmentId，直接过滤
-        List<AssignmentWeakPoints> filteredList = list;
-        if (assignmentId != null) {
-            filteredList = filteredList.stream()
-                    .filter(awp -> awp.getAssignmentId().equals(assignmentId))
-                    .collect(Collectors.toList());
-        }
-
-        if (filteredList.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 3. 如果有 courseId，需要筛选作业属于该课程的
+        // 2. 如果有 courseId，需要筛选作业属于该课程的
         if (courseId != null) {
-            List<Long> assignmentIds = filteredList.stream()
+            List<Long> assignmentIdsInList = list.stream()
                     .map(AssignmentWeakPoints::getAssignmentId)
                     .distinct()
                     .collect(Collectors.toList());
 
-            if (assignmentIds.isEmpty()) {
-                return new ArrayList<>();
-            }
-
-            List<Assignment> assignments = assignmentMapper.selectBatchIds(assignmentIds);
-            List<Long> validAssignmentIds = assignments.stream()
+            List<Assignment> assignments = assignmentMapper.selectBatchIds(assignmentIdsInList);
+            Set<Long> validAssignmentIds = assignments.stream()
                     .filter(a -> a.getCourseId().equals(courseId))
                     .map(Assignment::getId)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
             if (validAssignmentIds.isEmpty()) {
                 return new ArrayList<>();
             }
 
-            filteredList = filteredList.stream()
-                    .filter(awp -> validAssignmentIds.contains(awp.getAssignmentId()))
-                    .collect(Collectors.toList());
+            list.removeIf(awp -> !validAssignmentIds.contains(awp.getAssignmentId()));
         }
 
-        if (filteredList.isEmpty()) {
+        if (list.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 4. 查询作业信息
-        List<Long> assignmentIds = filteredList.stream()
+        // 3. 查询作业信息
+        List<Long> assignmentIds = list.stream()
                 .map(AssignmentWeakPoints::getAssignmentId)
                 .distinct()
                 .collect(Collectors.toList());
@@ -94,10 +79,10 @@ public class WeakPointServiceImpl implements WeakPointService {
         Map<Long, Assignment> assignmentMap = assignmentMapper.selectBatchIds(assignmentIds).stream()
                 .collect(Collectors.toMap(Assignment::getId, a -> a));
 
-        // 5. 组装结果
+        // 4. 组装结果
         List<WeakPointVO> result = new ArrayList<>();
 
-        for (AssignmentWeakPoints awp : filteredList) {
+        for (AssignmentWeakPoints awp : list) {
             Assignment assignment = assignmentMap.get(awp.getAssignmentId());
             String assignmentTitle = assignment != null ? assignment.getAssignmentTitle() : "未知作业";
 

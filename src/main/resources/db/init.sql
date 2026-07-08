@@ -500,13 +500,16 @@ CREATE TABLE `recommendation` (
 -- 28. 学生作业薄弱知识点表
 -- =============================================
 CREATE TABLE `assignment_weak_points` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
-    `assignment_id` BIGINT NOT NULL COMMENT '作业ID',
-    `user_id` BIGINT NOT NULL COMMENT '学生ID',
-    `weak_points` JSON NOT NULL COMMENT '薄弱知识点列表（JSON数组）',
-    `status` TINYINT DEFAULT 0 COMMENT '状态：0-待练习，1-已完成',
-    `practice_count` INT DEFAULT 0 COMMENT '练习次数',
-    UNIQUE KEY uk_assignment_user (assignment_id, user_id),
-    INDEX idx_assignment_id (assignment_id),
-    INDEX idx_user_id (user_id)
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                          `assignment_id` BIGINT NOT NULL,
+                                          `user_id` BIGINT NOT NULL,
+                                          `knowledge_point` VARCHAR(100) DEFAULT NULL COMMENT '知识点名称',
+                                          `explanation` TEXT DEFAULT NULL COMMENT '知识点讲解',
+                                          `wrong_count` INT DEFAULT 0 COMMENT '错题数量',
+                                          `wrong_questions` JSON DEFAULT NULL COMMENT '错题题干列表',
+                                          `status` TINYINT DEFAULT 0 COMMENT '0-待练习，1-已完成',
+                                          `practice_count` INT DEFAULT 0 COMMENT '练习次数',
+                                          UNIQUE KEY uk_assignment_user_knowledge (assignment_id, user_id, knowledge_point),
+                                          INDEX idx_assignment_id (assignment_id),
+                                          INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生作业薄弱知识点表';
