@@ -21,6 +21,9 @@ public interface NoticeService {
     /** 标记当前用户所有通知为已读 */
     void markAllRead(Long userId);
 
+    /** 删除单条通知 */
+    void deleteNotice(Long noticeId, Long userId);
+
     /**
      * 发送加入课程通知（给学生）
      */

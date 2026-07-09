@@ -81,9 +81,9 @@ public class CourseResourceController {
 
     /**
      * 下载资源（直接返回文件流）
-     * GET /qingyun/course/resource/download/{resourceId}
+     * POST /qingyun/course/resource/download/{resourceId}
      */
-    @GetMapping("/download/{resourceId}")
+    @PostMapping("/download/{resourceId}")
     public void downloadResource(
             @PathVariable Long resourceId,
             HttpServletRequest httpRequest,
