@@ -111,16 +111,46 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(409, "您已投过票");
         }
 
+        // ✅ 获取选项列表
+        List<String> options;
+        try {
+            options = objectMapper.readValue(vote.getOptions(), new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            throw new BusinessException(500, "选项解析失败");
+        }
+
+        // ✅ 将用户选择的字母转换为完整选项
+        String selectedOption = request.getSelectedOption();
+        String matchedOption = selectedOption;
+
+        for (String opt : options) {
+            // 如果用户提交的是 "C"，匹配 "C. 链表"
+            if (selectedOption != null && opt.startsWith(selectedOption + ". ")) {
+                matchedOption = opt;
+                break;
+            }
+            if (selectedOption != null && opt.startsWith(selectedOption + ".")) {
+                matchedOption = opt;
+                break;
+            }
+            // 如果用户提交的就是完整选项
+            if (opt.equals(selectedOption)) {
+                matchedOption = opt;
+                break;
+            }
+        }
+
+        // 判断是否正确（使用完整选项比较）
         Integer isCorrect = 0;
-        if (vote.getCorrectOption() != null &&
-                vote.getCorrectOption().equals(request.getSelectedOption())) {
+        if (vote.getCorrectOption() != null && vote.getCorrectOption().equals(matchedOption)) {
             isCorrect = 1;
         }
 
+        // 保存投票记录（保存完整选项）
         VoteRecord record = new VoteRecord();
         record.setVoteId(request.getVoteId());
         record.setUserId(studentId);
-        record.setSelectedOption(request.getSelectedOption());
+        record.setSelectedOption(matchedOption);  // ✅ 保存完整选项
         record.setIsCorrect(isCorrect);
         record.setSubmittedAt(LocalDateTime.now());
         voteRecordMapper.insert(record);
@@ -130,11 +160,11 @@ public class VoteServiceImpl implements VoteService {
         }
 
         log.info("投票提交成功: voteId={}, studentId={}, option={}, isCorrect={}",
-                request.getVoteId(), studentId, request.getSelectedOption(), isCorrect);
+                request.getVoteId(), studentId, matchedOption, isCorrect);
 
         return VoteSubmitVO.builder()
                 .voteId(request.getVoteId())
-                .selectedOption(request.getSelectedOption())
+                .selectedOption(matchedOption)
                 .isCorrect(isCorrect)
                 .correctOption(vote.getCorrectOption())
                 .build();
@@ -164,24 +194,61 @@ public class VoteServiceImpl implements VoteService {
         List<VoteRecord> records = voteRecordMapper.selectList(wrapper);
         int totalVoters = records.size();
 
-        Map<String, Integer> optionCountMap = new HashMap<>();
+        // ✅ 初始化统计 Map
+        Map<String, Integer> optionCountMap = new LinkedHashMap<>();
         for (String opt : options) {
             optionCountMap.put(opt, 0);
         }
+
         for (VoteRecord record : records) {
             String selected = record.getSelectedOption();
-            optionCountMap.put(selected, optionCountMap.getOrDefault(selected, 0) + 1);
+            log.info("投票记录: selectedOption={}", selected);
+
+            // ✅ 匹配逻辑：尝试多种匹配方式
+            boolean matched = false;
+            for (String opt : options) {
+                // 1. 精确匹配
+                if (opt.equals(selected)) {
+                    optionCountMap.put(opt, optionCountMap.getOrDefault(opt, 0) + 1);
+                    matched = true;
+                    break;
+                }
+                // 2. 前缀匹配：如果选项是 "A. 队列"，而 selected 是 "A"
+                if (selected != null && opt.startsWith(selected + ". ")) {
+                    optionCountMap.put(opt, optionCountMap.getOrDefault(opt, 0) + 1);
+                    matched = true;
+                    break;
+                }
+                if (selected != null && opt.startsWith(selected + ".")) {
+                    optionCountMap.put(opt, optionCountMap.getOrDefault(opt, 0) + 1);
+                    matched = true;
+                    break;
+                }
+                // 3. 包含匹配：如果选项包含 selected（如 "C. 链表" 包含 "C"）
+                if (selected != null && opt.contains(selected)) {
+                    optionCountMap.put(opt, optionCountMap.getOrDefault(opt, 0) + 1);
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                log.warn("未匹配的选项: selectedOption={}, options={}", selected, options);
+            }
         }
 
+        // 计算正确人数（基于投票记录中的 isCorrect 字段）
         int correctCount = 0;
         for (VoteRecord record : records) {
-            if (record.getIsCorrect() == 1) {
+            if (record.getIsCorrect() != null && record.getIsCorrect() == 1) {
                 correctCount++;
             }
         }
+
         double correctRate = totalVoters > 0 ?
                 Math.round((double) correctCount / totalVoters * 100 * 100) / 100.0 : 0.0;
 
+        // 组装统计结果
         List<VoteResultVO.OptionStatVO> statistics = new ArrayList<>();
         for (String opt : options) {
             Integer count = optionCountMap.getOrDefault(opt, 0);
