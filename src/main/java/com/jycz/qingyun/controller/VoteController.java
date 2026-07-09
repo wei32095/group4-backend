@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j//
+@Slf4j
 @RestController
 @RequestMapping("/qingyun/vote")
 @RequiredArgsConstructor
@@ -72,19 +72,24 @@ public class VoteController {
         return ApiResult.success(response);
     }
 
+    /**
+     * 获取投票列表（学生和老师通用）
+     * GET /qingyun/vote/list?classId=1
+     */
     @GetMapping("/list")
-    public ApiResult<List<VoteListVO>> getActiveVoteList(
+    public ApiResult<List<VoteListVO>> getVoteList(
             @RequestParam Long classId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
         Integer role = (Integer) httpRequest.getAttribute("role");
 
-        if (role == null || role != 1) {
-            return ApiResult.error(403, "仅学生可查看");
+        // ✅ 学生和老师都可以查看
+        if (role == null || (role != 1 && role != 2)) {
+            return ApiResult.error(403, "无权查看");
         }
 
-        List<VoteListVO> response = voteService.getVoteList(classId, userId);
+        List<VoteListVO> response = voteService.getVoteList(classId, userId, role);
         return ApiResult.success(response);
     }
 }

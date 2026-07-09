@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -94,18 +95,15 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @Transactional
     public VoteSubmitVO submitVote(VoteSubmitRequest request, Long studentId) {
-        // 1. 查询投票
         ClassVote vote = classVoteMapper.selectById(request.getVoteId());
         if (vote == null) {
             throw new BusinessException(404, "投票不存在");
         }
 
-        // 2. ✅ 校验投票是否已结束（直接比较时间）
         if (vote.getEndedAt() != null && LocalDateTime.now().isAfter(vote.getEndedAt())) {
             throw new BusinessException(400, "投票已结束");
         }
 
-        // 3. 检查是否已投过票
         LambdaQueryWrapper<VoteRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(VoteRecord::getVoteId, request.getVoteId())
                 .eq(VoteRecord::getUserId, studentId);
@@ -113,14 +111,12 @@ public class VoteServiceImpl implements VoteService {
             throw new BusinessException(409, "您已投过票");
         }
 
-        // 4. 判断是否正确
         Integer isCorrect = 0;
         if (vote.getCorrectOption() != null &&
                 vote.getCorrectOption().equals(request.getSelectedOption())) {
             isCorrect = 1;
         }
 
-        // 5. 保存投票记录
         VoteRecord record = new VoteRecord();
         record.setVoteId(request.getVoteId());
         record.setUserId(studentId);
@@ -129,7 +125,6 @@ public class VoteServiceImpl implements VoteService {
         record.setSubmittedAt(LocalDateTime.now());
         voteRecordMapper.insert(record);
 
-        // 6. 投票正确积分处理
         if (isCorrect == 1) {
             pointsRecordService.handleVoteCorrectPoints(studentId);
         }
@@ -140,7 +135,6 @@ public class VoteServiceImpl implements VoteService {
         return VoteSubmitVO.builder()
                 .voteId(request.getVoteId())
                 .selectedOption(request.getSelectedOption())
-                .correctOption(vote.getCorrectOption())
                 .isCorrect(isCorrect)
                 .correctOption(vote.getCorrectOption())
                 .build();
@@ -211,21 +205,33 @@ public class VoteServiceImpl implements VoteService {
                 .build();
     }
 
-    // ========== 新增：获取当前所有活跃投票 ==========
+    /**
+     * 获取投票列表（学生和老师通用）
+     */
     @Override
-    public List<VoteListVO> getVoteList(Long classId, Long studentId) {
+    public List<VoteListVO> getVoteList(Long classId, Long userId, Integer role) {
         // 1. 查询课堂是否存在
         Class clazz = classMapper.selectById(classId);
         if (clazz == null) {
             throw new BusinessException(404, "课堂不存在");
         }
 
-        // 2. 校验学生是否已加入该课程
-        LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
-        csWrapper.eq(CourseStudent::getCourseId, clazz.getCourseId())
-                .eq(CourseStudent::getUserId, studentId);
-        if (courseStudentMapper.selectCount(csWrapper) == 0) {
-            throw new BusinessException(403, "您未加入该课程");
+        // 2. 权限校验：学生必须已加入课程，老师必须是该课堂的老师
+        if (role == 1) {
+            // 学生：校验是否已加入课程
+            LambdaQueryWrapper<CourseStudent> csWrapper = new LambdaQueryWrapper<>();
+            csWrapper.eq(CourseStudent::getCourseId, clazz.getCourseId())
+                    .eq(CourseStudent::getUserId, userId);
+            if (courseStudentMapper.selectCount(csWrapper) == 0) {
+                throw new BusinessException(403, "您未加入该课程");
+            }
+        } else if (role == 2) {
+            // 老师：校验是否是该课堂的老师
+            if (!clazz.getUserId().equals(userId)) {
+                throw new BusinessException(403, "您不是该课堂的老师");
+            }
+        } else {
+            throw new BusinessException(403, "无权查看");
         }
 
         // 3. 查询该课堂所有投票
@@ -238,24 +244,28 @@ public class VoteServiceImpl implements VoteService {
             return new ArrayList<>();
         }
 
-        // 4. 获取该学生已投票的记录
-        List<Long> voteIds = votes.stream().map(ClassVote::getId).collect(Collectors.toList());
-        LambdaQueryWrapper<VoteRecord> recordWrapper = new LambdaQueryWrapper<>();
-        recordWrapper.in(VoteRecord::getVoteId, voteIds)
-                .eq(VoteRecord::getUserId, studentId);
-        List<VoteRecord> records = voteRecordMapper.selectList(recordWrapper);
+        // 4. 获取该学生的投票记录（老师不需要）
         Set<Long> votedVoteIds = new HashSet<>();
-        for (VoteRecord record : records) {
-            votedVoteIds.add(record.getVoteId());
-        }
+        Map<Long, VoteRecord> userVoteMap = new HashMap<>();
 
-        Map<Long, VoteRecord> userVoteMap = records.stream()
-                .filter(r -> r.getUserId().equals(studentId))
-                .collect(Collectors.toMap(
-                        VoteRecord::getVoteId,
-                        r -> r,
-                        (existing, replacement) -> replacement
-                ));
+        if (role == 1) {
+            // 学生：查询已投票记录
+            List<Long> voteIds = votes.stream().map(ClassVote::getId).collect(Collectors.toList());
+            LambdaQueryWrapper<VoteRecord> recordWrapper = new LambdaQueryWrapper<>();
+            recordWrapper.in(VoteRecord::getVoteId, voteIds)
+                    .eq(VoteRecord::getUserId, userId);
+            List<VoteRecord> records = voteRecordMapper.selectList(recordWrapper);
+
+            for (VoteRecord record : records) {
+                votedVoteIds.add(record.getVoteId());
+            }
+            userVoteMap = records.stream()
+                    .collect(Collectors.toMap(
+                            VoteRecord::getVoteId,
+                            r -> r,
+                            (existing, replacement) -> replacement
+                    ));
+        }
 
         // 5. 组装结果
         List<VoteListVO> result = new ArrayList<>();
@@ -267,30 +277,37 @@ public class VoteServiceImpl implements VoteService {
                 continue;
             }
 
+            // 计算实际状态
             String status = vote.getStatus();
             if (vote.getEndedAt() != null && LocalDateTime.now().isAfter(vote.getEndedAt())) {
                 status = "ended";
             }
 
-            VoteRecord userVote = userVoteMap.get(vote.getId());
-            String selectedOption = null;
-            Boolean hasVoted = false;
-            if (userVote != null) {
-                selectedOption = userVote.getSelectedOption();
-                hasVoted = true;
-            }
-
-            result.add(VoteListVO.builder()
+            VoteListVO.VoteListVOBuilder builder = VoteListVO.builder()
                     .voteId(vote.getId())
                     .heading(vote.getHeading())
                     .options(options)
-                    .status(status)  // ← 用动态计算的
+                    .status(status)
                     .endedAt(vote.getEndedAt())
+                    .correctOption(vote.getCorrectOption());
 
-                    .selectedOption(selectedOption)   // ← 新增
-                    .correctOption(vote.getCorrectOption())  // ← 新增
-                    .hasVoted(hasVoted)
-                    .build());
+            // 学生才需要返回投票状态，老师不需要
+            if (role == 1) {
+                VoteRecord userVote = userVoteMap.get(vote.getId());
+                if (userVote != null) {
+                    builder.hasVoted(true)
+                            .selectedOption(userVote.getSelectedOption());
+                } else {
+                    builder.hasVoted(false)
+                            .selectedOption(null);
+                }
+            } else {
+                // 老师：不需要这些字段
+                builder.hasVoted(null)
+                        .selectedOption(null);
+            }
+
+            result.add(builder.build());
         }
 
         return result;
