@@ -16,7 +16,7 @@ public class PendingAssignmentVO {
     private String courseName;
     private LocalDateTime deadline;
     private Integer maxScore;
-    private List<StudentPendingVO> students;  // ← 改为学生列表
+    private List<StudentPendingVO> students;
 
     @Data
     @Builder

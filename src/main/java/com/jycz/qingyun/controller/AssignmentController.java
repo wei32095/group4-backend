@@ -16,7 +16,7 @@ import java.util.List;
 @RequestMapping("/qingyun/assignment")
 @RequiredArgsConstructor
 public class AssignmentController {
-//
+
     private final AssignmentService assignmentService;
 
     @PostMapping("/create")
@@ -37,7 +37,6 @@ public class AssignmentController {
 
     /**
      * 学生查看作业列表（全局）
-     * GET /qingyun/assignment/student/list
      */
     @GetMapping("/student/list")
     public ApiResult<List<AssignmentStudentListVO>> getStudentAssignmentList(
@@ -55,9 +54,7 @@ public class AssignmentController {
     }
 
     /**
-     * 查看作业详情（支持查看自己的或指定学生的）
-     * GET /qingyun/assignment/detail?assignmentId=21
-     * GET /qingyun/assignment/detail?assignmentId=21&studentId=3  （老师查看指定学生）
+     * 查看作业详情
      */
     @GetMapping("/detail")
     public ApiResult<AssignmentDetailVO> getAssignmentDetail(
@@ -68,17 +65,14 @@ public class AssignmentController {
         Long userId = (Long) httpRequest.getAttribute("userId");
         Integer role = (Integer) httpRequest.getAttribute("role");
 
-        // 如果传了 studentId，校验是否是老师
         if (studentId != null) {
             if (role == null || role != 2) {
                 return ApiResult.error(403, "仅教师可查看其他学生的作业");
             }
-            // 使用 studentId 查询
             AssignmentDetailVO response = assignmentService.getAssignmentDetail(assignmentId, studentId);
             return ApiResult.success(response);
         }
 
-        // 不传 studentId，查看自己的
         AssignmentDetailVO response = assignmentService.getAssignmentDetail(assignmentId, userId);
         return ApiResult.success(response);
     }
@@ -115,9 +109,12 @@ public class AssignmentController {
         return ApiResult.success("批改成功", response);
     }
 
+    /**
+     * 教师查看作业列表（courseId 改为可选）
+     */
     @GetMapping("/teacher/list")
     public ApiResult<List<AssignmentTeacherListVO>> getTeacherAssignmentList(
-            @RequestParam Long courseId,
+            @RequestParam(required = false) Long courseId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
@@ -127,11 +124,18 @@ public class AssignmentController {
             return ApiResult.error(403, "仅教师可查看作业列表");
         }
 
+        // 如果 courseId 为空，返回空列表或提示
+        if (courseId == null) {
+            return ApiResult.success("请选择课程", null);
+        }
+
         List<AssignmentTeacherListVO> response = assignmentService.getTeacherAssignmentList(courseId, userId);
         return ApiResult.success(response);
     }
 
-    // ========== 新增：老师查看具体学生作业提交情况 ==========
+    /**
+     * 老师查看具体学生作业提交情况
+     */
     @GetMapping("/teacher/students")
     public ApiResult<AssignmentStudentGradeVO> getStudentGrades(
             @RequestParam Long assignmentId,
@@ -150,12 +154,14 @@ public class AssignmentController {
 
     /**
      * 教师查看待批改作业列表
+     * GET /qingyun/assignment/teacher/pending
+     * GET /qingyun/assignment/teacher/pending?courseId=8
      * GET /qingyun/assignment/teacher/pending?courseId=8&assignmentId=20
      */
     @GetMapping("/teacher/pending")
-    public ApiResult<PendingAssignmentVO> getPendingAssignments(
-            @RequestParam Long courseId,
-            @RequestParam Long assignmentId,
+    public ApiResult<List<PendingAssignmentVO>> getPendingAssignments(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long assignmentId,
             HttpServletRequest httpRequest) {
 
         Long userId = (Long) httpRequest.getAttribute("userId");
@@ -165,7 +171,7 @@ public class AssignmentController {
             return ApiResult.error(403, "仅教师可查看");
         }
 
-        PendingAssignmentVO response = (PendingAssignmentVO) assignmentService.getPendingAssignments(courseId, assignmentId, userId);
+        List<PendingAssignmentVO> response = assignmentService.getPendingAssignments(courseId, assignmentId, userId);
         return ApiResult.success(response);
     }
 }

@@ -8,7 +8,7 @@ import com.jycz.qingyun.model.vo.*;
 import java.util.List;
 
 public interface AssignmentService {
-//
+
     AssignmentCreateVO createAssignment(AssignmentCreateRequest request, Long teacherId);
 
     List<AssignmentStudentListVO> getStudentAssignmentList(Long studentId);
@@ -21,8 +21,14 @@ public interface AssignmentService {
 
     List<AssignmentTeacherListVO> getTeacherAssignmentList(Long courseId, Long teacherId);
 
-    // ========== 新增 ==========
     AssignmentStudentGradeVO getStudentGrades(Long assignmentId, Long teacherId);
 
-    PendingAssignmentVO getPendingAssignments(Long courseId, Long assignmentId, Long teacherId);
+    /**
+     * 获取待批改作业列表
+     * @param courseId 课程ID（可为 null）
+     * @param assignmentId 作业ID（可为 null）
+     * @param teacherId 教师ID
+     * @return 待批改作业列表
+     */
+    List<PendingAssignmentVO> getPendingAssignments(Long courseId, Long assignmentId, Long teacherId);
 }
