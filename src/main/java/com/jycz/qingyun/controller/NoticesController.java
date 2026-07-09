@@ -37,4 +37,11 @@ public class NoticesController {
         noticeService.markAllRead(userId);
         return ApiResult.success();
     }
+
+    @DeleteMapping("/{noticeId}")
+    public ApiResult<Void> deleteNotice(@PathVariable Long noticeId, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        noticeService.deleteNotice(noticeId, userId);
+        return ApiResult.success();
+    }
 }

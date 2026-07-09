@@ -107,6 +107,18 @@ public class NoticeServiceImpl implements NoticeService {
         noticeMapper.update(update, wrapper);
     }
 
+    @Override
+    public void deleteNotice(Long noticeId, Long userId) {
+        Notice notice = noticeMapper.selectById(noticeId);
+        if (notice == null) {
+            throw new BusinessException(404, "通知不存在");
+        }
+        if (!notice.getUserId().equals(userId)) {
+            throw new BusinessException(403, "无权操作该通知");
+        }
+        noticeMapper.deleteById(noticeId);
+    }
+
     private NoticeVO toVO(Notice notice) {
         NoticeVO vo = new NoticeVO();
         vo.setId(notice.getId());
