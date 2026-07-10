@@ -21,7 +21,6 @@ Spring Boot 3 + MyBatis-Plus 单体应用 · 学生/教师/管理员三端
 - [API 概览](#api-概览)
 - [数据库](#数据库)
 - [开发规范](#开发规范)
-- [团队](#团队)
 
 ---
 
@@ -51,12 +50,12 @@ Spring Boot 3 + MyBatis-Plus 单体应用 · 学生/教师/管理员三端
 | 层 | 选型 |
 |---|---|
 | **框架** | Spring Boot 3.2.7 · Java 17 |
-| **ORM** | MyBatis-Plus 3.5.16 |
+| **ORM** | MyBatis-Plus 3.5.16 (+ jsqlparser) |
 | **数据库** | MySQL 8.x（utf8mb4） |
 | **缓存** | Redis（验证码存储） |
 | **认证** | JWT（Auth0 java-jwt 4.4.0） |
-| **文件存储** | 阿里云 OSS |
-| **构建工具** | Maven |
+| **文件存储** | 阿里云 OSS 3.17.4 |
+| **构建工具** | Maven（阿里云镜像仓库） |
 | **辅助库** | Lombok · spring-boot-starter-validation · spring-boot-devtools |
 
 ---
@@ -92,8 +91,8 @@ Mapper（MyBatis-Plus BaseMapper · LambdaQueryWrapper）
 {
   "code": 200,
   "message": "操作成功",
-  "data": {  },
-  "timestamp": "2026-07-04T12:00:00Z"
+  "data": {},
+  "timestamp": "2026-07-10T12:00:00Z"
 }
 ```
 
@@ -106,49 +105,56 @@ Mapper（MyBatis-Plus BaseMapper · LambdaQueryWrapper）
 ### 🔐 用户认证
 - 账号密码注册/登录
 - 微信小程序登录（支持 mock 模式）
-- 个人信息修改、密码修改
+- 个人信息修改、密码修改、手机号绑定
 - 验证码发送（Redis 存储，用完即销毁）
 
 ### 📚 课程管理
 - 教师创建课程 → 管理员审核 → 学生通过课程码加入
 - 课程详情、学生/教师视角课程列表（分页）
-- 课程评价（含敏感词过滤）
+- 课程评价（星级 + 文字，敏感词过滤）
 - 课程问答（发布问题 + 回复）
+- 课程资源上传、OSS 代理访问与下载
 
 ### 🏫 课堂互动
 - 教师创建/结束课堂
-- 学生签到
-- 课堂投票（多选项，实时查看结果）
+- 学生签到，教师查看签到统计
+- 课堂投票（多选/单选，实时查看结果）
 - 课堂聊天（经敏感词过滤）
 
 ### 📝 作业系统
 - 教师创建作业（含客观题 + 主观题）
-- 学生在线提交
-- 教师批改打分
+- 学生在线提交（客观题自动判分）
+- 教师查看待批改列表、批改打分
+- 学生成绩查看
 
 ### ⏱️ 自习室
 - 正向计时 / 倒计时两种模式
+- 切屏检测，超限标记无效
 - 有效时长自动写入学情分析
 
 ### 🌸 花卉激励系统
-- 积分获取 → 种子商店 → 培育花卉 → 开花
+- 积分获取、积分流水记录
+- 种子商店（购买种子 → 播种 → 培育）
 - 三维属性：阳光 / 水分 / 养份，道具兑换增加属性
 - 四个生长阶段：种子 → 发芽 → 长叶 → 开花
-- 生长进度实时计算
 
 ### 📊 学情分析
 - 累计学习时长 & 周学习时长
 - 作业正确率统计
-- 自然周滚动归零
+- 薄弱知识点识别
 
 ### 🔔 通知系统
-- 系统通知分页展示
+- 管理员发布通知
+- 用户分页查看、标记已读、一键全标已读
 
 ### 🛡️ 管理端
+- 管理看板
 - 课程审核（通过/驳回）
 - 花卉种子 CRUD
 - 用户封禁/解封
 - 敏感词管理
+- 反馈管理
+- 通知发布
 
 ---
 
@@ -158,23 +164,16 @@ Mapper（MyBatis-Plus BaseMapper · LambdaQueryWrapper）
 
 - JDK 17+
 - MySQL 8.x
-- Redis（可选，仅验证码功能依赖）
+- Redis（验证码功能依赖）
 - Maven
 
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/your-org/qingyun.git
-cd qingyun
-```
-
-### 2. 初始化数据库
+### 1. 初始化数据库
 
 ```bash
 mysql -u root -p < src/main/resources/db/init.sql
 ```
 
-### 3. 配置 application.yml
+### 2. 配置 application.yml
 
 ```bash
 cp src/main/resources/application.yml.example src/main/resources/application.yml
@@ -190,7 +189,7 @@ cp src/main/resources/application.yml.example src/main/resources/application.yml
 | `wx.mock` | 微信 mock 模式（本地开发建议 true） |
 | `oss.*` | 阿里云 OSS（如不需上传可留空） |
 
-### 4. 运行
+### 3. 运行
 
 ```bash
 # 开发模式
@@ -204,7 +203,7 @@ java -jar target/qingyun-0.0.1-SNAPSHOT.jar
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-### 5. 健康检查
+### 4. 健康检查
 
 ```bash
 curl http://localhost:8080/hello
@@ -217,53 +216,59 @@ curl http://localhost:8080/hello
 
 ```
 src/main/java/com/jycz/qingyun/
-├── config/                  # 配置：MyBatis分页、WebMVC拦截器、Redis、OSS、全局异常
+├── config/                  # 9 个配置类
+│   ├── AliyunOssConfig.java
+│   ├── AppConfig.java
 │   ├── GlobalExceptionHandler.java
+│   ├── JacksonConfig.java
 │   ├── MybatisConfig.java
-│   ├── OssConfig.java
+│   ├── OssProperties.java
+│   ├── PasswordConfig.java
 │   ├── RedisConfig.java
 │   └── WebMvcConfig.java
-├── constants/               # 常量定义
-├── controller/              # 26个控制器
-│   ├── LoginController.java           # 登录注册
-│   ├── MpLoginController.java         # 微信小程序登录
-│   ├── VerifyCodeController.java      # 验证码
-│   ├── InfoController.java            # 个人信息
-│   ├── CourseController.java          # 课程（学生/教师）
+├── controller/              # 28 个控制器
+│   ├── AdminController.java           # 管理端看板
+│   ├── AnalysisController.java        # 学情分析
+│   ├── AssignmentController.java      # 作业
+│   ├── BanUserController.java         # 用户封禁
+│   ├── CheckinController.java         # 签到
+│   ├── ClassChatController.java       # 课堂聊天
+│   ├── ClassController.java           # 课堂管理
 │   ├── CourseAdminController.java     # 课程管理（管理员）
 │   ├── CourseAuditController.java     # 课程审核
-│   ├── ClassController.java           # 课堂管理
-│   ├── CheckinController.java         # 签到
-│   ├── VoteController.java            # 投票
-│   ├── ClassChatController.java       # 课堂聊天
-│   ├── AssignmentController.java      # 作业
-│   ├── StudyRoomController.java       # 自习室
-│   ├── CourseReviewController.java    # 课程评价
+│   ├── CourseController.java          # 课程
 │   ├── CourseProblemController.java   # 课程问答
-│   ├── FlowersController.java         # 花卉系统
-│   ├── SeedAdminController.java       # 种子管理（管理员）
-│   ├── AnalysisController.java        # 学情分析
-│   ├── NoticesController.java         # 通知
-│   ├── FileController.java            # 文件上传
-│   ├── SensitiveWordController.java   # 敏感词管理（管理员）
-│   ├── BanUserController.java         # 用户封禁（管理员）
+│   ├── CourseResourceController.java  # 课程资源
+│   ├── CourseReviewController.java    # 课程评价
 │   ├── FeedbackController.java        # 反馈
-│   └── TryController.java             # 健康检查
+│   ├── FileController.java            # 文件上传/OSS代理
+│   ├── FlowersController.java         # 花卉系统
+│   ├── InfoController.java            # 个人信息
+│   ├── LoginController.java           # 登录
+│   ├── MpLoginController.java         # 微信小程序登录
+│   ├── NoticesController.java         # 通知
+│   ├── RecommendationController.java  # AI 推荐
+│   ├── SeedAdminController.java       # 种子管理（管理员）
+│   ├── SensitiveWordController.java   # 敏感词管理
+│   ├── StudyRoomController.java       # 自习室
+│   ├── TryController.java             # 健康检查
+│   ├── VerifyCodeController.java      # 验证码
+│   ├── VoteController.java            # 投票
+│   └── WeakPointController.java       # 薄弱点
 ├── interceptor/
 │   └── JwtInterceptor.java          # JWT 拦截器
-├── mapper/                  # 23个 Mapper 接口
+├── mapper/                  # 28 个 Mapper 接口
 ├── model/
-│   ├── dto/                 # 32个请求体
-│   ├── entity/              # 24个实体类（对应 23 张表）
-│   └── vo/                  # 38个响应体
+│   ├── dto/                 # 40 个请求体（含 ApiResult）
+│   ├── entity/              # 27 个实体类
+│   └── vo/                  # 41 个响应体
 ├── service/
-│   └── serviceImpl/         # 服务实现
+│   └── serviceImpl/         # 27 个服务实现
 └── utils/
-    ├── JwtUtil.java              # JWT 工具
-    ├── WxUtil.java               # 微信工具
     ├── BusinessException.java    # 业务异常
+    ├── JwtUtil.java              # JWT 工具
     ├── SensitiveWordFilter.java  # DFA 敏感词过滤
-    └── ApiResult.java            # 统一响应
+    └── WxUtil.java               # 微信工具
 ```
 
 ---
@@ -282,11 +287,13 @@ src/main/java/com/jycz/qingyun/
 | GET | `/qingyun/info` | 获取个人信息 | 已登录 |
 | POST | `/qingyun/course/create` | 创建课程 | 教师 |
 | POST | `/qingyun/course/join` | 加入课程 | 学生 |
+| PUT | `/qingyun/course/audit` | 审核课程 | 管理员 |
 | POST | `/qingyun/studyroom/create` | 开始自习 | 已登录 |
 | POST | `/qingyun/assignment/create` | 创建作业 | 教师 |
+| PUT | `/qingyun/assignment/grade` | 批改作业 | 教师 |
+| POST | `/qingyun/vote/create` | 创建投票 | 教师 |
 | POST | `/qingyun/flowers/plant` | 播种 | 已登录 |
 | GET | `/qingyun/analysis/report` | 学情报告 | 已登录 |
-| PUT | `/qingyun/course/audit` | 审核课程 | 管理员 |
 
 ---
 
@@ -300,16 +307,19 @@ src/main/java/com/jycz/qingyun/
 | 课程 | `course`, `course_student` |
 | 课程评价 | `course_review` |
 | 课程问答 | `course_problem`, `course_problem_reply` |
+| 课程资源 | `course_resource` |
 | 课堂 | `class` |
 | 签到 | `class_check` |
 | 投票 | `class_vote`, `vote_record` |
 | 聊天 | `class_chat` |
-| 作业 | `assignment`, `question`, `object_submit`, `subject_submit` |
+| 作业 | `assignment`, `question`, `object_submit`, `subject_submit`, `assignment_weak_points` |
 | 自习室 | `study_room` |
 | 学情 | `student_analysis` |
 | 花卉 | `seed`, `flower`, `points_record`, `shop_item` |
-| 通知 | `notice` |
+| 通知 | `notice`, `notice_publish` |
 | 敏感词 | `sensitive_word` |
+| 反馈 | `feedback` |
+| AI 推荐 | `recommendation` |
 
 建表 SQL 见 `src/main/resources/db/init.sql`。
 
@@ -323,18 +333,3 @@ src/main/java/com/jycz/qingyun/
 - **事务**：服务层使用 `@Transactional` 声明式事务
 - **请求校验**：`@Valid` + `jakarta.validation` 注解
 - **敏感词过滤**：所有文本输入（聊天、评价、提问）经过 `SensitiveWordFilter`
-
----
-
-## 团队
-
-| 成员 | 角色 |
-|------|------|
-| **王欣悦** | 负责人 |
-| **孙唯一** | 负责人 |
-
----
-
-<div align="center">
-Built with Spring Boot · MyBatis-Plus · ❤️
-</div>
